@@ -1,619 +1,548 @@
 import streamlit as st
-import yfinance as yf
 import requests
-import os
 import json
-import pandas as pd
-import numpy as np
-import pandas_ta as ta
-from dotenv import load_dotenv
-from transformers import pipeline
+import random
+import time
+import uuid
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 
 load_dotenv()
 
-yf_session = requests.Session()
-yf_session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+# ── Config ────────────────────────────────────────────────────────────────────
+JSONBIN_API_KEY = os.getenv("JSONBIN_API_KEY", "")
+JSONBIN_BIN_ID  = os.getenv("JSONBIN_BIN_ID", "")
+ADMIN_KEY       = os.getenv("ADMIN_KEY", "admin123")
+JSONBIN_URL     = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
+HEADERS         = {"X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json"}
 
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-APP_PASSWORD = os.getenv("APP_PASSWORD", "password")
-
-WATCHLIST_FILE = "my_watchlist.json"
-
-PENNY_SEED = [
-    "SNDL", "CLOV", "EXPR", "BBIG", "NKLA", "RIDE", "WKHS", "GOEV",
-    "PHUN", "CEAD", "MARK", "PALI", "ATER", "GFAI",
-    "SBEV", "HCDI", "IMPP", "BFRI", "MGOL", "MEGL"
+# ── Funny content ─────────────────────────────────────────────────────────────
+WAITING_MESSAGES = [
+    ("🎮", "mrGPT is playing Minecraft right now.", "He'll answer you between rounds."),
+    ("💤", "mrGPT is asleep.", "His dedication to your question is truly inspiring."),
+    ("🍕", "mrGPT is eating.", "Do not disturb. Seriously."),
+    ("📱", "mrGPT has seen your message.", "He left it on read. Intentionally."),
+    ("🏃", "mrGPT stepped outside for some air.", "In January. Without a jacket."),
+    ("📺", "mrGPT is watching YouTube.", '"For research purposes."'),
+    ("😤", "mrGPT is arguing with someone online.", "Your question is next. Probably."),
+    ("🛁", "mrGPT is in the bathroom.", "This could take anywhere from 2 to 45 minutes."),
+    ("🎵", "mrGPT is making a playlist.", "Very relevant to your question, trust."),
+    ("📚", "Consulting the ancient texts.", "(It's Reddit.)"),
+    ("🔋", "mrGPT battery: 2%.", "Peak performance mode activated."),
+    ("🏖️", "mrGPT is mentally on vacation.", "Physically he's at his desk. Spiritually? Gone."),
+    ("🤖", "BEEP BOOP PROCESSING.", "This is definitely a real AI and not a person."),
+    ("🎯", "You are #1 in queue.*", "*Queue currently has 847 other questions."),
+    ("🌙", "mrGPT has entered sleep mode.", "Expected wake time: unknown."),
+    ("🤔", "mrGPT is thinking really hard.", "Or he forgot. Hard to tell."),
+    ("⚡", "Running at 12% capacity.", "This IS peak performance."),
+    ("🎲", "mrGPT rolled a die to decide if he'd answer now.", "He got a 3. Whatever that means."),
+    ("🧠", "Neural pathways activating...", "Nothing is happening. We're working on it."),
+    ("📡", "Transmitting your question across the servers.", "The servers are a guy named Dave."),
+    ("☕", "mrGPT is getting coffee.", "Fourth cup today. He's fine."),
+    ("🐌", "Answers delivered at the speed of thought.*", "*mrGPT's thoughts move quite slowly."),
 ]
 
-st.set_page_config(page_title="Stock Analyzer", page_icon="📈", layout="wide")
+FAKE_STEPS = [
+    "Tokenizing input vectors...",
+    "Loading 847 billion parameters...",
+    "Activating attention mechanism...",
+    "Consulting the algorithm council...",
+    "Running semantic analysis engine v4.2...",
+    "Cross-referencing knowledge base...",
+    "Performing quantum inference...",
+    "Optimizing response coherence...",
+    "Finalizing neural output...",
+    "97% complete...",
+    "97% complete...",
+    "97% complete...",
+    "97% complete...",
+    "Still 97%... this is normal...",
+]
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "wrong_password" not in st.session_state:
-    st.session_state.wrong_password = False
+# ── Storage helpers ────────────────────────────────────────────────────────────
+def get_data():
+    try:
+        r = requests.get(f"{JSONBIN_URL}/latest", headers=HEADERS, timeout=8)
+        return r.json().get("record", {"questions": []})
+    except:
+        return {"questions": []}
 
-if not st.session_state.authenticated:
-    if st.session_state.wrong_password:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.title("🔒 Access Required")
-            st.warning("You must say the magic word to try again.")
-            please_input = st.text_input("...", placeholder="Say the magic word")
-            if st.button("Submit"):
-                if please_input.strip().lower() == "please":
-                    st.session_state.wrong_password = False
-                    st.rerun()
-                else:
-                    st.error("That's not it.")
-        with col2:
-            ah_text = "AH AH AH! " * 150
-            st.markdown(
-                f"""
-                <div style="
-                    background-color: black;
-                    color: red;
-                    font-weight: bold;
-                    font-size: 18px;
-                    height: 600px;
-                    overflow: hidden;
-                    padding: 20px;
-                    word-wrap: break-word;
-                    line-height: 1.8;
-                ">
-                {ah_text}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            st.image("https://media.giphy.com/media/4NnSe87mg3h25JYIDh/giphy.gif", width=400)
-            st.error("You didn't say the magic word.")
+def save_data(data):
+    try:
+        requests.put(JSONBIN_URL, headers=HEADERS, json=data, timeout=8)
+    except:
+        pass
+
+def submit_question(question_text):
+    data = get_data()
+    qid = str(uuid.uuid4())[:8]
+    data["questions"].append({
+        "id": qid,
+        "question": question_text,
+        "answer": None,
+        "status": "pending",
+        "asked_at": datetime.now().isoformat(),
+        "answered_at": None,
+    })
+    save_data(data)
+    return qid
+
+def get_question(qid):
+    data = get_data()
+    for q in data["questions"]:
+        if q["id"] == qid:
+            return q
+    return None
+
+def answer_question(qid, answer_text):
+    data = get_data()
+    for q in data["questions"]:
+        if q["id"] == qid:
+            q["answer"] = answer_text
+            q["status"] = "answered"
+            q["answered_at"] = datetime.now().isoformat()
+            break
+    save_data(data)
+
+def delete_question(qid):
+    data = get_data()
+    data["questions"] = [q for q in data["questions"] if q["id"] != qid]
+    save_data(data)
+
+# ── Page config ────────────────────────────────────────────────────────────────
+st.set_page_config(page_title="mrGPT", page_icon="🤖", layout="centered")
+
+# ── CSS ────────────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* Reset */
+.stApp { background: #07070f; color: #e0e0f0; font-family: 'Inter', sans-serif; }
+.block-container { max-width: 720px; padding-top: 2rem; }
+
+/* Hide streamlit chrome */
+#MainMenu, footer, header { visibility: hidden; }
+
+/* Sidebar hidden unless admin */
+[data-testid="stSidebar"] { display: none; }
+
+/* Buttons */
+.stButton > button {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 1em;
+    padding: 0.6em 1.4em;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+}
+.stButton > button:hover {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(124,58,237,0.4);
+}
+
+/* Text input */
+.stTextArea textarea, .stTextInput input {
+    background: #12121f;
+    border: 1.5px solid #2d2b55;
+    border-radius: 10px;
+    color: #e0e0f0;
+    font-family: 'Inter', sans-serif;
+    font-size: 1em;
+}
+.stTextArea textarea:focus, .stTextInput input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.2);
+}
+
+/* Containers */
+[data-testid="stContainer"] {
+    background: #0e0e1f;
+    border: 1px solid #1e1e40;
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #07070f; }
+::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+
+/* Typography */
+h1,h2,h3 { font-family: 'Inter', sans-serif; }
+
+/* Progress bar override */
+.stProgress > div > div { background: linear-gradient(90deg, #7c3aed, #f97316); }
+
+/* Glitch animation */
+@keyframes glitch {
+    0%   { transform: translate(0); }
+    20%  { transform: translate(-2px, 1px); }
+    40%  { transform: translate(2px, -1px); }
+    60%  { transform: translate(-1px, 2px); }
+    80%  { transform: translate(1px, -2px); }
+    100% { transform: translate(0); }
+}
+@keyframes pulse-glow {
+    0%,100% { text-shadow: 0 0 10px rgba(124,58,237,0.6); }
+    50%      { text-shadow: 0 0 30px rgba(249,115,22,0.8), 0 0 60px rgba(124,58,237,0.4); }
+}
+@keyframes blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0; }
+}
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+@keyframes typewriter {
+    from { width: 0; }
+    to   { width: 100%; }
+}
+@keyframes float {
+    0%,100% { transform: translateY(0px); }
+    50%      { transform: translateY(-8px); }
+}
+@keyframes progress-stuck {
+    0%   { width: 0%; }
+    70%  { width: 97%; }
+    100% { width: 97%; }
+}
+@keyframes scanline {
+    0%   { top: -100%; }
+    100% { top: 100%; }
+}
+@keyframes reveal-flash {
+    0%   { background: #7c3aed; opacity:0.8; }
+    100% { background: transparent; opacity:0; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ── Session state ─────────────────────────────────────────────────────────────
+for k, v in [("page","home"),("question_id",None),("question_text",""),
+             ("answer",None),("msg_index",0),("step_index",0)]:
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+# ── Admin check ───────────────────────────────────────────────────────────────
+params = st.query_params
+is_admin = params.get("admin", "") == ADMIN_KEY
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ADMIN PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if is_admin:
+    st.markdown("""
+    <div style='text-align:center;margin-bottom:1.5rem;'>
+        <div style='font-family:JetBrains Mono,monospace;color:#f97316;font-size:0.8em;letter-spacing:0.2em;'>ADMIN PANEL // AUTHORIZED ACCESS</div>
+        <h2 style='color:#e0e0f0;margin:0.3rem 0;'>🤖 mrGPT Control Room</h2>
+        <div style='color:#6b6b9a;font-size:0.85em;'>You are the AI. No pressure.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    data = get_data()
+    pending = [q for q in data["questions"] if q["status"] == "pending"]
+    answered = [q for q in data["questions"] if q["status"] == "answered"]
+
+    if not pending:
+        st.markdown("""
+        <div style='text-align:center;padding:3rem;color:#6b6b9a;'>
+            <div style='font-size:3rem;'>🎉</div>
+            <div style='font-size:1.1em;margin-top:0.5rem;'>No pending questions.</div>
+            <div style='font-size:0.85em;margin-top:0.3rem;'>Go touch grass.</div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.title("🔒 Access Required")
-        st.markdown(
-            """
-            <iframe width="560" height="315"
-            src="https://www.youtube.com/embed/RfiQYRn7fBg"
-            frameborder="0" allowfullscreen>
-            </iframe>
-            """,
-            unsafe_allow_html=True
-        )
-        password_input = st.text_input("Enter password", type="password")
-        if st.button("Enter"):
-            if password_input == APP_PASSWORD:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.session_state.wrong_password = True
-                st.rerun()
+        st.markdown(f"<div style='color:#f97316;font-weight:700;margin-bottom:1rem;'>📬 {len(pending)} question(s) waiting for your genius</div>", unsafe_allow_html=True)
+        for q in pending:
+            with st.container(border=True):
+                asked_time = q["asked_at"][:16].replace("T", " at ")
+                st.markdown(f"""
+                <div style='font-size:0.72em;color:#6b6b9a;margin-bottom:0.4rem;font-family:JetBrains Mono,monospace;'>ID: {q['id']} // Asked: {asked_time}</div>
+                <div style='font-size:1.1em;font-weight:700;color:#e0e0f0;margin-bottom:1rem;'>"{q['question']}"</div>
+                """, unsafe_allow_html=True)
+                answer = st.text_area("Your answer:", key=f"ans_{q['id']}", height=100,
+                                       placeholder="Type your incredibly intelligent AI response here...")
+                col1, col2 = st.columns([3,1])
+                with col1:
+                    if st.button("📤 Send Answer", key=f"sub_{q['id']}", use_container_width=True):
+                        if answer.strip():
+                            answer_question(q["id"], answer.strip())
+                            st.success("✅ Answer sent! The human on the other end will never know.")
+                            time.sleep(1)
+                            st.rerun()
+                with col2:
+                    if st.button("🗑️ Delete", key=f"del_{q['id']}", use_container_width=True):
+                        delete_question(q["id"])
+                        st.rerun()
+
+    if answered:
+        st.markdown("---")
+        with st.expander(f"📜 Answered questions ({len(answered)})"):
+            for q in reversed(answered[-10:]):
+                st.markdown(f"""
+                <div style='margin-bottom:1rem;padding:0.8rem;background:#0a0a1a;border-radius:8px;border-left:3px solid #7c3aed;'>
+                    <div style='color:#a0a0c0;font-size:0.85em;margin-bottom:0.3rem;'>Q: {q['question']}</div>
+                    <div style='color:#e0e0f0;font-size:0.9em;'>A: {q['answer']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
     st.stop()
 
-@st.cache_resource
-def load_sentiment_model():
-    return pipeline("text-classification", model="ProsusAI/finbert")
+# ══════════════════════════════════════════════════════════════════════════════
+#  PUBLIC: HOME PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "home":
+    st.markdown("""
+    <div style='text-align:center;padding:2rem 0 1rem;'>
+        <div style='font-size:4.5rem;animation:float 3s ease-in-out infinite;display:inline-block;'>🤖</div>
+        <h1 style='
+            font-size:3.2rem;
+            font-weight:900;
+            background:linear-gradient(135deg,#7c3aed,#f97316,#7c3aed);
+            background-size:200%;
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+            animation:pulse-glow 2s ease-in-out infinite;
+            margin:0.3rem 0 0;
+            letter-spacing:-0.02em;
+        '>mrGPT</h1>
+        <div style='color:#6b6b9a;font-size:0.9em;margin-top:0.2rem;letter-spacing:0.05em;'>
+            POWERED BY NEURAL NETWORKS™ &nbsp;·&nbsp; 100% ARTIFICIAL &nbsp;·&nbsp; 0% INTELLIGENT
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-sentiment_model = load_sentiment_model()
+    # Fake stats bar
+    st.markdown("""
+    <div style='
+        display:flex;justify-content:center;gap:2.5rem;
+        padding:0.8rem;margin:1rem 0;
+        background:#0e0e1f;border:1px solid #1e1e40;border-radius:10px;
+        font-size:0.78em;color:#6b6b9a;text-align:center;
+    '>
+        <div><div style='color:#f97316;font-weight:700;font-size:1.3em;'>1,847,293</div>Questions Answered</div>
+        <div><div style='color:#7c3aed;font-weight:700;font-size:1.3em;'>99.7%</div>Accuracy*</div>
+        <div><div style='color:#f97316;font-weight:700;font-size:1.3em;'>&lt;∞ms</div>Response Time</div>
+        <div><div style='color:#7c3aed;font-weight:700;font-size:1.3em;'>GPT-9</div>Model Version</div>
+    </div>
+    <div style='text-align:right;color:#2d2b55;font-size:0.65em;margin-top:-0.8rem;margin-bottom:0.5rem;'>*accuracy not verified or verifiable</div>
+    """, unsafe_allow_html=True)
 
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-if "selected_ticker" not in st.session_state:
-    st.session_state.selected_ticker = None
+    st.markdown("<div style='margin:1.5rem 0 0.5rem;font-weight:700;font-size:1.05em;'>Ask mrGPT anything:</div>", unsafe_allow_html=True)
+    question = st.text_area("", placeholder="What is the meaning of life? Why is the sky blue? What should I eat for dinner?",
+                              height=110, label_visibility="collapsed")
 
-def go_to_detail(ticker):
-    st.session_state.selected_ticker = ticker
-    st.session_state.page = "detail"
+    # Disclaimer
+    st.markdown("""
+    <div style='font-size:0.72em;color:#2d2b55;margin:0.3rem 0 1rem;font-family:JetBrains Mono,monospace;'>
+        By submitting, you agree that mrGPT is not responsible for any advice given, 
+        consequences of following said advice, existential crises, or 
+        feelings of confusion. mrGPT's responses are for entertainment only.
+    </div>
+    """, unsafe_allow_html=True)
 
-def go_home():
-    st.session_state.page = "home"
-
-def load_my_watchlist():
-    if os.path.exists(WATCHLIST_FILE):
-        with open(WATCHLIST_FILE, "r") as f:
-            return json.load(f)
-    return []
-
-def save_my_watchlist(watchlist):
-    with open(WATCHLIST_FILE, "w") as f:
-        json.dump(watchlist, f)
-
-def normalize(series):
-    min_val = series.min()
-    max_val = series.max()
-    if max_val == min_val:
-        return series * 0
-    return (series - min_val) / (max_val - min_val)
-
-def find_similar_patterns(history, pattern_days=30, top_n=5):
-    closes = history["Close"].reset_index(drop=True)
-    current_pattern = normalize(closes.tail(pattern_days)).values
-    matches = []
-    for i in range(pattern_days, len(closes) - 252):
-        window = normalize(closes.iloc[i - pattern_days:i]).values
-        if len(window) != pattern_days:
-            continue
-        correlation = np.corrcoef(current_pattern, window)[0, 1]
-        matches.append((i, correlation))
-    matches.sort(key=lambda x: x[1], reverse=True)
-    return matches[:top_n]
-
-def get_outcome_after(history, start_idx, days):
-    closes = history["Close"].reset_index(drop=True)
-    end_idx = start_idx + days
-    if end_idx >= len(closes):
-        return None
-    return ((closes.iloc[end_idx] - closes.iloc[start_idx]) / closes.iloc[start_idx]) * 100
-
-def analyze_timeframes(history, similar_pattern_indices):
-    timeframes = {"Today": 1, "This Week": 5, "This Month": 21, "3 Months": 63, "6 Months": 126, "1 Year+": 252}
-    results = {}
-    for label, days in timeframes.items():
-        outcomes = [get_outcome_after(history, idx, days) for idx, _ in similar_pattern_indices]
-        outcomes = [o for o in outcomes if o is not None]
-        if outcomes:
-            results[label] = {
-                "avg_change": round(np.mean(outcomes), 2),
-                "positive_rate": round(sum(1 for o in outcomes if o > 0) / len(outcomes) * 100),
-                "sample_size": len(outcomes)
-            }
-        else:
-            results[label] = None
-    return results
-
-def analyze_technicals(history):
-    signals = []
-    score = 0
-    h = history.copy()
-    h["RSI"] = ta.rsi(h["Close"], length=14)
-    macd = ta.macd(h["Close"])
-    h["MACD"] = macd["MACD_12_26_9"]
-    h["MACD_signal"] = macd["MACDs_12_26_9"]
-    h["SMA20"] = ta.sma(h["Close"], length=20)
-    h["SMA50"] = ta.sma(h["Close"], length=50)
-    latest = h.iloc[-1]
-    current_price = latest["Close"]
-
-    rsi = latest["RSI"]
-    if pd.notna(rsi):
-        if rsi < 30:
-            signals.append(("RSI", "🟢 Oversold — potential bounce incoming", "+"))
-            score += 1
-        elif rsi > 70:
-            signals.append(("RSI", "🔴 Overbought — potential pullback incoming", "-"))
-            score -= 1
-        else:
-            signals.append(("RSI", f"🟡 Neutral ({round(rsi, 1)})", "0"))
-
-    if pd.notna(latest["MACD"]) and pd.notna(latest["MACD_signal"]):
-        if latest["MACD"] > latest["MACD_signal"]:
-            signals.append(("MACD", "🟢 Bullish crossover — upward momentum", "+"))
-            score += 1
-        else:
-            signals.append(("MACD", "🔴 Bearish crossover — downward momentum", "-"))
-            score -= 1
-
-    if pd.notna(latest["SMA20"]) and pd.notna(latest["SMA50"]):
-        if current_price > latest["SMA20"] > latest["SMA50"]:
-            signals.append(("Moving Averages", "🟢 Price above both averages — strong uptrend", "+"))
-            score += 2
-        elif current_price < latest["SMA20"] < latest["SMA50"]:
-            signals.append(("Moving Averages", "🔴 Price below both averages — strong downtrend", "-"))
-            score -= 2
-        else:
-            signals.append(("Moving Averages", "🟡 Mixed signals — no clear trend", "0"))
-
-    avg_volume = history["Volume"].tail(20).mean()
-    latest_volume = latest["Volume"]
-    if latest_volume > avg_volume * 1.5:
-        signals.append(("Volume", "🟢 High volume — strong market interest", "+"))
-        score += 1
-    elif latest_volume < avg_volume * 0.5:
-        signals.append(("Volume", "🔴 Low volume — weak market interest", "-"))
-        score -= 1
-    else:
-        signals.append(("Volume", "🟡 Normal volume", "0"))
-
-    recent_prices = history["Close"].tail(20)
-    price_change = (recent_prices.iloc[-1] - recent_prices.iloc[0]) / recent_prices.iloc[0] * 100
-    if price_change > 5:
-        signals.append(("Price Trend (20 days)", f"🟢 Up {round(price_change, 1)}% over 20 days", "+"))
-        score += 1
-    elif price_change < -5:
-        signals.append(("Price Trend (20 days)", f"🔴 Down {round(abs(price_change), 1)}% over 20 days", "-"))
-        score -= 1
-    else:
-        signals.append(("Price Trend (20 days)", f"🟡 Relatively flat ({round(price_change, 1)}%)", "0"))
-
-    return signals, score
-
-def get_news_and_sentiment(name, page_size=5):
-    news_url = (
-        f"https://newsapi.org/v2/everything?"
-        f"q={name}&sortBy=publishedAt&language=en&pageSize={page_size}&apiKey={NEWS_API_KEY}"
-    )
-    news_data = requests.get(news_url).json()
-    articles_out = []
-    sentiment_scores = []
-    if news_data.get("articles"):
-        for article in news_data["articles"]:
-            text = f"{article['title']}. {article.get('description', '')}"[:512]
-            result = sentiment_model(text)[0]
-            label = result["label"]
-            score = result["score"]
-            if label == "positive":
-                sentiment_scores.append(1)
-                badge = "🟢 Positive"
-            elif label == "negative":
-                sentiment_scores.append(-1)
-                badge = "🔴 Negative"
-            else:
-                sentiment_scores.append(0)
-                badge = "🟡 Neutral"
-            articles_out.append({
-                "title": article["title"],
-                "source": article["source"]["name"],
-                "date": article["publishedAt"][:10],
-                "description": article.get("description", ""),
-                "badge": badge,
-                "confidence": round(score * 100)
-            })
-    avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
-    return articles_out, avg_sentiment
-
-def compute_confidence(history, name):
-    _, tech_score = analyze_technicals(history)
-    _, avg_sentiment = get_news_and_sentiment(name, page_size=3)
-    sentiment_score = round(avg_sentiment * 3)
-    total_score = tech_score + sentiment_score
-    confidence_pct = round((total_score / 8) * 100)
-    return max(-100, min(100, confidence_pct))
-
-def format_verdict(confidence_pct):
-    abs_conf = abs(confidence_pct)
-    direction = "📈 UP" if confidence_pct >= 0 else "📉 DOWN"
-    if abs_conf >= 50:
-        rating = "High"
-    elif abs_conf >= 20:
-        rating = "Moderate"
-    else:
-        rating = "Low"
-    if abs_conf < 20:
-        return "➡️ UNCLEAR", "Low", abs_conf, "🟡"
-    return f"{direction}", rating, abs_conf, "🟢" if confidence_pct >= 0 else "🔴"
-
-@st.cache_data(ttl=3600)
-def get_quick_analysis(ticker):
-    try:
-        stock = yf.Ticker(ticker, session=yf_session)
-        history = stock.history(period="5y")
-        if history.empty:
-            return None
-        price = round(history["Close"].iloc[-1], 2)
-        confidence_pct = compute_confidence(history, ticker)
-        return {"name": ticker, "price": price, "confidence": confidence_pct, "ticker": ticker}
-    except:
-        return None
-
-@st.cache_data(ttl=3600)
-def get_trending_tickers():
-    try:
-        url = "https://query1.finance.yahoo.com/v1/finance/trending/US?count=10"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers)
-        data = response.json()
-        quotes = data["finance"]["result"][0]["quotes"]
-        return [q["symbol"] for q in quotes if "." not in q["symbol"]][:10]
-    except:
-        return ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "JPM", "V", "WMT"]
-
-@st.cache_data(ttl=3600)
-def get_active_penny_stocks():
-    try:
-        results = []
-        for ticker in PENNY_SEED:
-            try:
-                history = yf.Ticker(ticker, session=yf_session).history(period="1mo")
-                if history.empty:
-                    continue
-                price = history["Close"].iloc[-1]
-                volume = history["Volume"].mean()
-                if price and price < 5:
-                    results.append({"ticker": ticker, "price": price, "volume": volume})
-            except:
-                continue
-        results.sort(key=lambda x: x["volume"], reverse=True)
-        return [r["ticker"] for r in results[:10]]
-    except:
-        return PENNY_SEED[:10]
-
-def get_buy_hold_sell(confidence, gain_loss_pct, signals):
-    positive_signals = [s for s in signals if s[2] == "+"]
-    negative_signals = [s for s in signals if s[2] == "-"]
-    reasons = []
-    if confidence >= 50 and gain_loss_pct >= 0:
-        verdict = "🟢 BUY MORE"
-        reasons.append(f"Strong bullish signal at {confidence}% confidence")
-        reasons.append(f"Position is up {round(gain_loss_pct, 1)}% — momentum is in your favor")
-        if positive_signals:
-            reasons.append(f"Supporting signals: {', '.join([s[0] for s in positive_signals])}")
-    elif confidence >= 50 and gain_loss_pct < 0:
-        verdict = "🟡 HOLD"
-        reasons.append(f"Analysis is bullish at {confidence}% — recovery is indicated")
-        reasons.append(f"Position is down {round(abs(gain_loss_pct), 1)}% but signals suggest patience")
-        reasons.append("Selling now locks in a loss before the indicated recovery")
-    elif confidence <= -50:
-        verdict = "🔴 SELL"
-        reasons.append(f"Strong bearish signal at {abs(confidence)}% confidence")
-        if negative_signals:
-            reasons.append(f"Warning signals: {', '.join([s[0] for s in negative_signals])}")
-        if gain_loss_pct < 0:
-            reasons.append(f"Position already down {round(abs(gain_loss_pct), 1)}% — further decline indicated")
-        else:
-            reasons.append("Consider locking in gains before conditions deteriorate")
-    elif confidence <= -20 and gain_loss_pct < -15:
-        verdict = "🔴 SELL"
-        reasons.append(f"Moderate bearish signal with a {round(abs(gain_loss_pct), 1)}% loss")
-        reasons.append("Downside risk outweighs recovery probability at this point")
-    elif -20 <= confidence <= 20:
-        verdict = "🟡 HOLD"
-        reasons.append("Signals are mixed — no strong case to act in either direction")
-        reasons.append("Wait for a clearer trend before changing your position")
-    else:
-        verdict = "🟡 HOLD"
-        reasons.append(f"Signal is {confidence}% — not strong enough to act decisively")
-        reasons.append("Monitor for a stronger signal before moving")
-    return verdict, reasons
-
-def render_stock_card(data, section_key):
-    if not data:
-        return
-    direction, rating, abs_conf, color = format_verdict(data["confidence"])
-    with st.container(border=True):
-        st.markdown(f"### {data['ticker']}")
-        st.write(f"**{data['name']}**")
-        st.write(f"Price: **${data['price']}**")
-        st.markdown(f"**Algorithmic outlook:** {direction} — {rating} ({abs_conf}%)")
-        st.caption("Based on technical indicators and recent news sentiment.")
-        if st.button("Full Analysis →", key=f"{section_key}_{data['ticker']}"):
-            go_to_detail(data["ticker"])
-            st.rerun()
-
-def show_home():
-    st.title("📈 Stock Analyzer")
-    col_search, col_btn = st.columns([4, 1])
-    with col_search:
-        search_input = st.text_input("Search any stock ticker", placeholder="e.g. AAPL, TSLA, NVDA").upper()
-    with col_btn:
-        st.write("")
-        st.write("")
-        if st.button("Analyze →", use_container_width=True) and search_input:
-            go_to_detail(search_input)
-            st.rerun()
-
-    st.markdown("---")
-    st.subheader("🔥 Trending Now")
-    st.caption("Most-watched tickers on US markets today. Click any card for the full breakdown.")
-    trending_tickers = get_trending_tickers()
-    with st.spinner("Analyzing trending stocks..."):
-        cols = st.columns(2)
-        for i, ticker in enumerate(trending_tickers):
-            with cols[i % 2]:
-                render_stock_card(get_quick_analysis(ticker), "trend")
-
-    st.markdown("---")
-    st.subheader("⚠️ High Risk — Penny Stocks")
-    st.caption("All under $5. Extremely volatile. Do not invest more than you can afford to lose entirely.")
-    penny_tickers = get_active_penny_stocks()
-    with st.spinner("Analyzing penny stocks..."):
-        cols = st.columns(2)
-        for i, ticker in enumerate(penny_tickers):
-            with cols[i % 2]:
-                render_stock_card(get_quick_analysis(ticker), "penny")
-
-def show_my_watchlist():
-    st.title("📁 My Watchlist")
-    st.caption("⚠️ Algorithmic analysis only — not financial advice. Do not make investment decisions based solely on this data.")
-    st.markdown("---")
-
-    my_list = load_my_watchlist()
-
-    with st.expander("➕ Add a position"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            new_ticker = st.text_input("Ticker", placeholder="e.g. AAPL").upper()
-        with col2:
-            buy_price = st.number_input("Your buy price ($)", min_value=0.01, value=1.00, step=0.01)
-        with col3:
-            shares = st.number_input("Shares owned", min_value=1, value=1, step=1)
-        if st.button("Add to Watchlist"):
-            if new_ticker:
-                my_list.append({
-                    "ticker": new_ticker,
-                    "buy_price": buy_price,
-                    "shares": shares,
-                    "added": datetime.now().strftime("%Y-%m-%d")
-                })
-                save_my_watchlist(my_list)
-                st.success(f"Added {new_ticker}")
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if st.button("🚀 Ask mrGPT", use_container_width=True):
+            if question.strip():
+                with st.spinner("Submitting to the neural network..."):
+                    qid = submit_question(question.strip())
+                st.session_state.question_id = qid
+                st.session_state.question_text = question.strip()
+                st.session_state.page = "waiting"
+                st.session_state.msg_index = random.randint(0, len(WAITING_MESSAGES)-1)
+                st.session_state.step_index = 0
                 st.rerun()
-
-    if not my_list:
-        st.write("No positions added yet. Use the form above to add your first stock.")
-        return
-
-    for i, position in enumerate(my_list):
-        ticker = position["ticker"]
-        buy_price = position["buy_price"]
-        shares = position["shares"]
-        try:
-            stock = yf.Ticker(ticker, session=yf_session)
-            history = stock.history(period="5y")
-            if history.empty:
-                st.warning(f"Could not load data for {ticker}")
-                continue
-            current_price = round(history["Close"].iloc[-1], 2)
-            name = ticker
-
-            if not history.empty:
-                gain_loss_pct = ((current_price - buy_price) / buy_price) * 100
-                gain_loss_dollar = (current_price - buy_price) * shares
-                signals, _ = analyze_technicals(history)
-                confidence = compute_confidence(history, name)
-                verdict, reasons = get_buy_hold_sell(confidence, gain_loss_pct, signals)
-
-                with st.container(border=True):
-                    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-                    with col1:
-                        st.markdown(f"### {ticker}")
-                    with col2:
-                        st.metric("Current Price", f"${round(current_price, 2)}")
-                    with col3:
-                        st.metric("Buy Price", f"${round(buy_price, 2)}")
-                    with col4:
-                        st.metric("Your Gain / Loss", f"${round(gain_loss_dollar, 2)}", f"{round(gain_loss_pct, 1)}%")
-
-                    st.markdown(f"## {verdict}")
-                    for reason in reasons:
-                        st.write(f"• {reason}")
-
-                    col_a, col_b = st.columns([1, 4])
-                    with col_a:
-                        if st.button("Full Analysis", key=f"detail_{ticker}_{i}"):
-                            go_to_detail(ticker)
-                            st.rerun()
-                    with col_b:
-                        if st.button("Remove Position", key=f"remove_{ticker}_{i}"):
-                            my_list.pop(i)
-                            save_my_watchlist(my_list)
-                            st.rerun()
             else:
-                st.warning(f"Could not load data for {ticker}")
-        except Exception as e:
-            st.warning(f"Error loading {ticker}: {str(e)}")
+                st.error("Please type a question. mrGPT can't read minds. Yet.")
 
-def show_detail(ticker):
-    if st.button("← Back to Home"):
-        go_home()
+    st.markdown("""
+    <div style='text-align:center;margin-top:2.5rem;color:#1e1e40;font-size:0.75em;font-family:JetBrains Mono,monospace;'>
+        mrGPT v9.4.2-beta // NOT affiliated with OpenAI, Google, Anthropic, or anyone competent
+    </div>
+    """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PUBLIC: WAITING PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state.page == "waiting":
+    msg = WAITING_MESSAGES[st.session_state.msg_index % len(WAITING_MESSAGES)]
+    step = FAKE_STEPS[st.session_state.step_index % len(FAKE_STEPS)]
+    emoji, headline, subline = msg
+
+    st.markdown(f"""
+    <div style='text-align:center;padding:1.5rem 0;'>
+        <div style='font-size:5rem;animation:float 2s ease-in-out infinite;display:inline-block;'>{emoji}</div>
+        <h2 style='color:#f97316;font-size:1.6rem;font-weight:800;margin:0.5rem 0 0.2rem;'>{headline}</h2>
+        <div style='color:#9090b0;font-size:1rem;'>{subline}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Question recap
+    q_text = st.session_state.question_text
+    st.markdown(f"""
+    <div style='
+        background:#0e0e1f;border:1px solid #2d2b55;border-radius:10px;
+        padding:1rem 1.2rem;margin:0.5rem 0 1.2rem;
+    '>
+        <div style='font-size:0.72em;color:#6b6b9a;font-family:JetBrains Mono,monospace;margin-bottom:0.3rem;'>YOUR QUESTION:</div>
+        <div style='color:#e0e0f0;font-size:1em;'>"{q_text}"</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Fake progress bar
+    st.markdown("""
+    <div style='margin:0.5rem 0;'>
+        <div style='font-size:0.72em;color:#6b6b9a;font-family:JetBrains Mono,monospace;margin-bottom:0.4rem;'>PROCESSING PROGRESS:</div>
+        <div style='background:#12121f;border-radius:6px;height:12px;overflow:hidden;border:1px solid #1e1e40;'>
+            <div style='
+                height:100%;width:97%;
+                background:linear-gradient(90deg,#7c3aed,#f97316);
+                animation:progress-stuck 3s ease-out forwards;
+                border-radius:6px;
+            '></div>
+        </div>
+        <div style='text-align:right;font-size:0.7em;color:#6b6b9a;font-family:JetBrains Mono,monospace;margin-top:0.2rem;'>97% — almost there (has been saying this for a while)</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Fake AI steps
+    st.markdown(f"""
+    <div style='
+        background:#070714;border:1px solid #1a1a35;border-radius:8px;
+        padding:0.8rem 1rem;margin:0.8rem 0;
+        font-family:JetBrains Mono,monospace;font-size:0.75em;color:#4a4a7a;
+    '>
+        <div style='color:#7c3aed;margin-bottom:0.4rem;'>▶ mrGPT_engine.exe</div>
+        {"".join(f'<div style="color:#2d4a2d;">✓ {FAKE_STEPS[i]}</div>' for i in range(min(st.session_state.step_index, 9)))}
+        <div style='color:#f97316;'>
+            <span style='animation:blink 0.8s infinite;display:inline-block;'>▌</span>
+            {step}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Timer note
+    st.markdown(f"""
+    <div style='text-align:center;color:#3a3a5a;font-size:0.75em;font-family:JetBrains Mono,monospace;margin-top:0.8rem;'>
+        Auto-checking for answer every 5 seconds... // ID: {st.session_state.question_id}
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([2,1,2])
+    with col2:
+        if st.button("✕ Cancel", use_container_width=True):
+            if st.session_state.question_id:
+                delete_question(st.session_state.question_id)
+            st.session_state.page = "home"
+            st.session_state.question_id = None
+            st.rerun()
+
+    # Poll for answer
+    time.sleep(5)
+    q = get_question(st.session_state.question_id)
+    if q and q["status"] == "answered":
+        st.session_state.answer = q["answer"]
+        st.session_state.page = "answered"
+        st.rerun()
+    else:
+        # Cycle messages and steps
+        st.session_state.msg_index = (st.session_state.msg_index + 1) % len(WAITING_MESSAGES)
+        st.session_state.step_index = min(st.session_state.step_index + 1, len(FAKE_STEPS) - 1)
         st.rerun()
 
-    stock = yf.Ticker(ticker, session=yf_session)
-    history = stock.history(period="5y")
-    price = round(history["Close"].iloc[-1], 2) if not history.empty else "N/A"
-    previous_close = round(history["Close"].iloc[-2], 2) if len(history) > 1 else "N/A"
-    volume = int(history["Volume"].iloc[-1]) if not history.empty else "N/A"
-    market_cap = "N/A"
+# ══════════════════════════════════════════════════════════════════════════════
+#  PUBLIC: ANSWERED PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state.page == "answered":
+    st.markdown("""
+    <div style='text-align:center;padding:1rem 0 0.5rem;'>
+        <div style='
+            display:inline-block;
+            background:linear-gradient(135deg,#7c3aed22,#f9731622);
+            border:1px solid #7c3aed;
+            border-radius:10px;
+            padding:0.3rem 1rem;
+            font-family:JetBrains Mono,monospace;
+            font-size:0.75em;
+            color:#7c3aed;
+            letter-spacing:0.15em;
+            margin-bottom:0.8rem;
+        '>◈ NEURAL RESPONSE RECEIVED ◈</div>
+        <h2 style='
+            color:#f97316;
+            font-size:2rem;
+            font-weight:900;
+            text-shadow:0 0 20px rgba(249,115,22,0.5);
+            margin:0.2rem 0;
+        '>mrGPT has spoken.</h2>
+        <div style='color:#6b6b9a;font-size:0.85em;'>After extensive deliberation and zero hesitation.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.title(f"{ticker}")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Current Price", f"${price}")
-    col2.metric("Previous Close", f"${previous_close}")
-    col3.metric("Volume", f"{volume:,}" if isinstance(volume, int) else volume)
-    col4.metric("Market Cap", market_cap)
+    q_text = st.session_state.question_text
+    st.markdown(f"""
+    <div style='background:#0a0a1a;border-radius:10px;padding:0.8rem 1.2rem;margin:0.8rem 0;border-left:3px solid #6b6b9a;'>
+        <div style='font-size:0.7em;color:#4a4a7a;font-family:JetBrains Mono,monospace;margin-bottom:0.3rem;'>QUERY:</div>
+        <div style='color:#a0a0c0;font-size:0.95em;'>"{q_text}"</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📈 Chart",
-        "📊 Technical Analysis",
-        "🔁 Historical Patterns",
-        "📰 News & Sentiment",
-        "📋 Final Score"
-    ])
+    answer_text = st.session_state.answer or ""
+    st.markdown(f"""
+    <div style='
+        background:linear-gradient(135deg,#0e0a1f,#1a0e10);
+        border:1px solid rgba(124,58,237,0.4);
+        border-radius:14px;
+        padding:1.5rem;
+        margin:0.5rem 0 1.2rem;
+        position:relative;
+        overflow:hidden;
+    '>
+        <div style='
+            position:absolute;top:0;left:0;right:0;bottom:0;
+            background:linear-gradient(135deg,rgba(124,58,237,0.03),rgba(249,115,22,0.03));
+            pointer-events:none;
+        '></div>
+        <div style='font-size:0.7em;color:#7c3aed;font-family:JetBrains Mono,monospace;margin-bottom:0.6rem;letter-spacing:0.1em;'>▶ mrGPT RESPONSE:</div>
+        <div style='color:#e8e8ff;font-size:1.1em;line-height:1.7;font-weight:500;'>{answer_text}</div>
+        <div style='text-align:right;margin-top:1rem;font-size:0.65em;color:#3a3a5a;font-family:JetBrains Mono,monospace;'>
+            Generated by mrGPT™ Neural Engine v9.4.2 // Confidence: extremely high
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    with tab1:
-        st.subheader("Price Chart")
-        period = st.selectbox("Time Range", ["1 Month", "3 Months", "6 Months", "1 Year", "5 Years"])
-        period_map = {"1 Month": 21, "3 Months": 63, "6 Months": 126, "1 Year": 252, "5 Years": len(history)}
-        st.line_chart(history["Close"].tail(period_map[period]))
+    # Fake accuracy note
+    st.markdown("""
+    <div style='
+        text-align:center;font-size:0.72em;color:#3a3a5a;
+        font-family:JetBrains Mono,monospace;margin-bottom:1.2rem;
+    '>
+        ⚠ mrGPT responses are 99.7% accurate* &nbsp;·&nbsp; *figure entirely made up
+    </div>
+    """, unsafe_allow_html=True)
 
-    with tab2:
-        st.subheader("Technical Indicators")
-        st.caption("Each row is one signal the algorithm evaluated. Click to see what it means.")
-        signals, _ = analyze_technicals(history)
-        for indicator, description, direction in signals:
-            with st.expander(f"{indicator}"):
-                st.write(description)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if st.button("🔄 Ask Another Question", use_container_width=True):
+            st.session_state.page = "home"
+            st.session_state.question_id = None
+            st.session_state.question_text = ""
+            st.session_state.answer = None
+            st.session_state.step_index = 0
+            st.rerun()
 
-    with tab3:
-        st.subheader("Historical Pattern Matching")
-        st.caption("The algorithm found the 5 most similar 30-day price shapes in the last 5 years and recorded what happened after each one.")
-        reliability_note = {
-            "Today": "High",
-            "This Week": "High",
-            "This Month": "Moderate",
-            "3 Months": "Moderate",
-            "6 Months": "Lower",
-            "1 Year+": "Lowest"
-        }
-        with st.spinner("Scanning 5 years of history for similar patterns..."):
-            similar = find_similar_patterns(history)
-            timeframe_results = analyze_timeframes(history, similar)
-
-        cols = st.columns(3)
-        for idx, (label, data) in enumerate(timeframe_results.items()):
-            with cols[idx % 3]:
-                with st.container(border=True):
-                    st.markdown(f"**{label}**")
-                    st.caption(f"Reliability: {reliability_note[label]}")
-                    if data:
-                        direction = "📈 UP" if data["avg_change"] > 0 else "📉 DOWN"
-                        st.markdown(f"### {direction}")
-                        st.write(f"Avg change: **{data['avg_change']}%**")
-                        st.write(f"Went up in **{data['positive_rate']}%** of past cases")
-                        st.caption(f"Based on {data['sample_size']} similar situations")
-                    else:
-                        st.write("Not enough data")
-
-    with tab4:
-        st.subheader("News & Sentiment")
-        st.caption("Recent articles analyzed for positive, negative, or neutral financial sentiment.")
-        with st.spinner("Fetching and analyzing articles..."):
-            articles, avg_sentiment = get_news_and_sentiment(ticker)
-        if avg_sentiment > 0.2:
-            st.success("Overall news sentiment: POSITIVE 🟢")
-        elif avg_sentiment < -0.2:
-            st.error("Overall news sentiment: NEGATIVE 🔴")
-        else:
-            st.warning("Overall news sentiment: NEUTRAL 🟡")
-        st.markdown("---")
-        for article in articles:
-            with st.expander(f"{article['badge']} {article['title']}"):
-                st.caption(f"{article['source']} — {article['date']}")
-                st.write(article["description"])
-                st.write(f"Sentiment confidence: **{article['confidence']}%**")
-
-    with tab5:
-        st.subheader("Final Score")
-        st.caption("All signals combined into one directional score. You make the final call.")
-        signals, tech_score = analyze_technicals(history)
-        _, avg_sentiment = get_news_and_sentiment(ticker, page_size=3)
-        sentiment_score = round(avg_sentiment * 3)
-        total_score = tech_score + sentiment_score
-        confidence_pct = round((total_score / 8) * 100)
-        confidence_pct = max(-100, min(100, confidence_pct))
-
-        direction, rating, abs_conf, color = format_verdict(confidence_pct)
-
-        if color == "🟢":
-            st.success(f"{direction} — {rating} ({abs_conf}%)")
-        elif color == "🔴":
-            st.error(f"{direction} — {rating} ({abs_conf}%)")
-        else:
-            st.warning(f"{direction} — {rating} ({abs_conf}%)")
-
-        st.metric("Confidence Score", f"{abs_conf}%")
-        st.write(f"**Signal strength: {rating}**")
-        st.caption("This tool presents data and reasoning only. The final decision is yours.")
-
-st.sidebar.title("Navigation")
-if st.sidebar.button("🏠 Home", use_container_width=True):
-    go_home()
-    st.rerun()
-if st.sidebar.button("📁 My Watchlist", use_container_width=True):
-    st.session_state.page = "watchlist"
-    st.rerun()
-
-if st.session_state.page == "home":
-    show_home()
-elif st.session_state.page == "detail":
-    show_detail(st.session_state.selected_ticker)
-elif st.session_state.page == "watchlist":
-    show_my_watchlist()
+    st.markdown("""
+    <div style='text-align:center;margin-top:1rem;'>
+        <div style='font-size:0.75em;color:#2d2b55;'>mrGPT is not responsible for any decisions made based on this response.</div>
+        <div style='font-size:0.7em;color:#1e1e40;margin-top:0.2rem;'>This has been a production of mrGPT Industries™. All rights reserved. Or whatever.</div>
+    </div>
+    """, unsafe_allow_html=True)
