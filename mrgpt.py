@@ -352,7 +352,7 @@ hr { border-color: #222 !important; }
     0%,100% { transform: translateY(0) rotate(45deg) scale(1); }
     50%      { transform: translateY(-18px) rotate(225deg) scale(1.15); }
 }
-@keyndef cin-float-3 {
+@keyframes cin-float-3 {
     0%,100% { transform: translateX(0) rotate(0deg); opacity: 0.6; }
     50%      { transform: translateX(12px) rotate(180deg); opacity: 1; }
 }
@@ -639,9 +639,9 @@ elif st.session_state.page == "waiting":
                 <div style='background:#111;border:1px solid #ff5722;border-radius:4px 18px 18px 18px;padding:1.8rem 1.5rem;
                     box-shadow:0 0 40px rgba(255,87,34,0.1),inset 0 0 40px rgba(255,87,34,0.02);'>
 
-                    <!-- Orbital animation -->
+                    
                     <div style='position:relative;width:200px;height:200px;margin:0 auto 1.5rem;'>
-                        <!-- Rings -->
+                        
                         <div style='position:absolute;top:50%;left:50%;width:180px;height:180px;
                             margin:-90px 0 0 -90px;border:1px solid rgba(255,87,34,0.2);border-radius:50%;
                             animation:spin-ring 8s linear infinite;'></div>
@@ -651,12 +651,12 @@ elif st.session_state.page == "waiting":
                         <div style='position:absolute;top:50%;left:50%;width:80px;height:80px;
                             margin:-40px 0 0 -40px;border:1px solid rgba(255,200,0,0.15);border-radius:50%;
                             animation:spin-ring 3s linear infinite;'></div>
-                        <!-- Center orb -->
+                        
                         <div style='position:absolute;top:50%;left:50%;width:28px;height:28px;
                             margin:-14px 0 0 -14px;background:radial-gradient(circle,#ff5722,#e64a19);
                             border-radius:50%;box-shadow:0 0 20px rgba(255,87,34,0.8);
                             animation:nasa-pulse 2s ease-in-out infinite;'></div>
-                        <!-- Orbiting dots -->
+                        
                         <div style='position:absolute;top:50%;left:50%;width:10px;height:10px;margin:-5px 0 0 -5px;'>
                             <div style='width:10px;height:10px;background:#ff5722;border-radius:50%;
                                 box-shadow:0 0 8px #ff5722;animation:orbit-1 3s linear infinite;'></div>
@@ -706,9 +706,9 @@ elif st.session_state.page == "waiting":
                 <div style='font-size:0.78em;font-weight:600;color:#888;margin-bottom:0.5rem;font-family:Space Mono,monospace;animation:flicker 3s infinite;'>MrGPT</div>
                 <div style='background:#1a1a1a;border:1px solid #2e2e2e;border-radius:4px 18px 18px 18px;padding:1.8rem 1.5rem;overflow:hidden;'>
 
-                    <!-- Chaos shapes stage -->
+                    
                     <div style='position:relative;height:180px;margin-bottom:1.2rem;overflow:hidden;'>
-                        <!-- Rotating triangle -->
+                        
                         <div style='position:absolute;top:30px;left:50%;margin-left:-40px;
                             width:0;height:0;
                             border-left:40px solid transparent;
@@ -716,25 +716,25 @@ elif st.session_state.page == "waiting":
                             border-bottom:70px solid rgba(255,87,34,0.8);
                             filter:drop-shadow(0 0 12px rgba(255,87,34,0.6));
                             animation:chaos-fly-1 2s ease-in-out infinite;'></div>
-                        <!-- Spinning square -->
+                        
                         <div style='position:absolute;top:50px;left:20%;
                             width:35px;height:35px;
                             background:rgba(255,140,0,0.7);
                             border-radius:4px;
                             box-shadow:0 0 15px rgba(255,140,0,0.5);
                             animation:chaos-fly-2 1.5s ease-in-out infinite;'></div>
-                        <!-- Circle -->
+                        
                         <div style='position:absolute;top:20px;right:20%;
                             width:45px;height:45px;
                             border:3px solid rgba(255,200,0,0.7);
                             border-radius:50%;
                             box-shadow:0 0 15px rgba(255,200,0,0.4);
                             animation:chaos-fly-3 1.8s ease-in-out infinite;'></div>
-                        <!-- Small dot scatter -->
+                        
                         <div style='position:absolute;top:60%;left:15%;width:8px;height:8px;background:#ff5722;border-radius:50%;animation:chaos-fly-2 1.2s ease-in-out infinite;'></div>
                         <div style='position:absolute;top:40%;right:15%;width:6px;height:6px;background:#ffcc00;border-radius:1px;animation:chaos-fly-1 0.9s ease-in-out infinite;'></div>
                         <div style='position:absolute;bottom:20px;left:40%;width:12px;height:12px;border:2px solid #ff8c00;border-radius:50%;animation:chaos-fly-3 1.4s ease-in-out infinite;'></div>
-                        <!-- Glitch lines -->
+                        
                         <div style='position:absolute;top:45%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#ff5722,transparent);animation:flicker 0.8s infinite;'></div>
                         <div style='position:absolute;top:55%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#ff8c00,transparent);animation:flicker 1.2s 0.3s infinite;'></div>
                     </div>
@@ -768,13 +768,13 @@ elif st.session_state.page == "waiting":
                 <div style='background:linear-gradient(160deg,#161616,#1a1a14);border:1px solid #2a2a20;
                     border-radius:4px 18px 18px 18px;padding:2.5rem 1.5rem;text-align:center;'>
 
-                    <!-- Cinematic floating shapes -->
+                    
                     <div style='position:relative;height:160px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:center;'>
-                        <!-- Background rings -->
+                        
                         <div style='position:absolute;width:150px;height:150px;border:1px solid rgba(255,87,34,0.1);border-radius:50%;animation:spin-ring 12s linear infinite;'></div>
                         <div style='position:absolute;width:110px;height:110px;border:1px solid rgba(255,140,0,0.08);border-radius:50%;animation:spin-ring-rev 8s linear infinite;'></div>
 
-                        <!-- Main shape: large glowing diamond -->
+                        
                         <div style='position:relative;z-index:2;
                             width:60px;height:60px;
                             background:linear-gradient(135deg,#ff5722,#ff8c00);
@@ -783,7 +783,7 @@ elif st.session_state.page == "waiting":
                             animation:cin-float-1 4s ease-in-out infinite;
                             box-shadow:0 0 30px rgba(255,87,34,0.6),0 0 60px rgba(255,87,34,0.2);'></div>
 
-                        <!-- Orbiting small shapes -->
+                        
                         <div style='position:absolute;top:20px;right:30%;
                             width:14px;height:14px;
                             background:rgba(255,140,0,0.6);
