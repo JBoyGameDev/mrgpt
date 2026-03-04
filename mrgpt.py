@@ -142,12 +142,18 @@ html, body, .stApp {
 [data-testid="collapsedControl"] {
     display: flex !important;
     visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
     background: #1e1e1e !important;
     border-right: 1px solid #2a2a2a !important;
+    z-index: 999999 !important;
+    position: fixed !important;
 }
-[data-testid="collapsedControl"] svg { fill: #888 !important; }
+[data-testid="collapsedControl"] svg { fill: #aaa !important; }
+[data-testid="collapsedControl"]:hover { background: #2a2a2a !important; }
 
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer { visibility: hidden; }
+header { visibility: hidden; }
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
