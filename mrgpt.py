@@ -138,22 +138,18 @@ html, body, .stApp {
     margin: 0 auto;
 }
 
-/* Show sidebar toggle arrow always */
-[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    background: #1e1e1e !important;
-    border-right: 1px solid #2a2a2a !important;
-    z-index: 999999 !important;
-    position: fixed !important;
-}
-[data-testid="collapsedControl"] svg { fill: #aaa !important; }
-[data-testid="collapsedControl"]:hover { background: #2a2a2a !important; }
-
 #MainMenu, footer { visibility: hidden; }
-header { visibility: hidden; }
+/* Hide header bar but keep sidebar toggle */
+header[data-testid="stHeader"] { background: transparent !important; }
+header[data-testid="stHeader"]::before { display: none; }
+/* Style the native sidebar toggle button */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    background: #ff5722 !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="collapsedControl"] svg { fill: white !important; }
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
@@ -390,33 +386,6 @@ for k, v in defaults.items():
 
 params = st.query_params
 is_admin = params.get("admin", "") == ADMIN_KEY
-
-# ── Sidebar toggle button (top-left, always visible) ─────────────────────────
-st.markdown("""
-<div style='position:fixed;top:0.6rem;left:0.6rem;z-index:999999;'>
-    <button onclick="
-        var sb = window.parent.document.querySelector('[data-testid=stSidebar]');
-        var btn = window.parent.document.querySelector('[data-testid=collapsedControl]');
-        if(btn){ btn.click(); } else {
-            var openBtn = window.parent.document.querySelector('[data-testid=stSidebarCollapseButton]');
-            if(openBtn) openBtn.click();
-        }
-    " style="
-        background:#ff5722;
-        border:none;
-        color:white;
-        width:36px;height:36px;
-        border-radius:8px;
-        font-size:1.1rem;
-        cursor:pointer;
-        display:flex;align-items:center;justify-content:center;
-        box-shadow:0 2px 12px rgba(255,87,34,0.5);
-        transition:background 0.15s;
-    " onmouseover="this.style.background='#e64a19'" onmouseout="this.style.background='#ff5722'">
-        ☰
-    </button>
-</div>
-""", unsafe_allow_html=True)
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
