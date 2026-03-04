@@ -391,6 +391,33 @@ for k, v in defaults.items():
 params = st.query_params
 is_admin = params.get("admin", "") == ADMIN_KEY
 
+# ── Sidebar toggle button (top-left, always visible) ─────────────────────────
+st.markdown("""
+<div style='position:fixed;top:0.6rem;left:0.6rem;z-index:999999;'>
+    <button onclick="
+        var sb = window.parent.document.querySelector('[data-testid=stSidebar]');
+        var btn = window.parent.document.querySelector('[data-testid=collapsedControl]');
+        if(btn){ btn.click(); } else {
+            var openBtn = window.parent.document.querySelector('[data-testid=stSidebarCollapseButton]');
+            if(openBtn) openBtn.click();
+        }
+    " style="
+        background:#ff5722;
+        border:none;
+        color:white;
+        width:36px;height:36px;
+        border-radius:8px;
+        font-size:1.1rem;
+        cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 2px 12px rgba(255,87,34,0.5);
+        transition:background 0.15s;
+    " onmouseover="this.style.background='#e64a19'" onmouseout="this.style.background='#ff5722'">
+        ☰
+    </button>
+</div>
+""", unsafe_allow_html=True)
+
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
