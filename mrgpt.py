@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import json
 import random
 import time
 import uuid
@@ -15,6 +14,7 @@ JSONBIN_BIN_ID  = os.getenv("JSONBIN_BIN_ID", "")
 ADMIN_KEY       = os.getenv("ADMIN_KEY", "admin123")
 JSONBIN_URL     = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
 HEADERS         = {"X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json"}
+MAX_QUESTIONS   = 3
 
 WAITING_MESSAGES = [
     ("🎮", "MrGPT is playing Minecraft right now.", "He'll get to you between rounds."),
@@ -66,7 +66,7 @@ def save_data(data):
 
 def submit_question(question_text):
     data = get_data()
-    qid = str(uuid.uuid4())[:8]
+    qid = str(uuid.uuid4())[:8].upper()
     data["questions"].append({
         "id": qid,
         "question": question_text,
@@ -75,20 +75,23 @@ def submit_question(question_text):
         "asked_at": datetime.now().isoformat(),
         "answered_at": None,
     })
+    # Keep only the most recent MAX_QUESTIONS
+    if len(data["questions"]) > MAX_QUESTIONS:
+        data["questions"] = data["questions"][-MAX_QUESTIONS:]
     save_data(data)
     return qid
 
 def get_question(qid):
     data = get_data()
     for q in data["questions"]:
-        if q["id"] == qid:
+        if q["id"].upper() == qid.upper():
             return q
     return None
 
 def answer_question(qid, answer_text):
     data = get_data()
     for q in data["questions"]:
-        if q["id"] == qid:
+        if q["id"].upper() == qid.upper():
             q["answer"] = answer_text
             q["status"] = "answered"
             q["answered_at"] = datetime.now().isoformat()
@@ -97,7 +100,7 @@ def answer_question(qid, answer_text):
 
 def delete_question(qid):
     data = get_data()
-    data["questions"] = [q for q in data["questions"] if q["id"] != qid]
+    data["questions"] = [q for q in data["questions"] if q["id"].upper() != qid.upper()]
     save_data(data)
 
 st.set_page_config(page_title="MrGPT", page_icon="🤖", layout="centered")
@@ -119,7 +122,6 @@ html, body, .stApp {
 #MainMenu, footer, header { visibility: hidden; }
 [data-testid="stSidebar"] { display: none; }
 
-/* Buttons */
 .stButton > button {
     background: #1a1a1a;
     color: #ececec;
@@ -137,20 +139,6 @@ html, body, .stApp {
     border-color: #555;
 }
 
-/* Primary button override for submit */
-div[data-testid="column"]:nth-child(2) .stButton > button {
-    background: #ff4500;
-    border-color: #ff4500;
-    color: white;
-    font-weight: 600;
-}
-div[data-testid="column"]:nth-child(2) .stButton > button:hover {
-    background: #ff5722;
-    border-color: #ff5722;
-    box-shadow: 0 4px 20px rgba(255,69,0,0.3);
-}
-
-/* Textarea */
 .stTextArea textarea {
     background: #161616;
     border: 1px solid #2a2a2a;
@@ -167,39 +155,37 @@ div[data-testid="column"]:nth-child(2) .stButton > button:hover {
     box-shadow: 0 0 0 3px rgba(255,69,0,0.1);
     outline: none;
 }
-.stTextArea textarea::placeholder { color: #555; }
+.stTextArea textarea::placeholder { color: #444; }
 
-/* Text input */
 .stTextInput input {
     background: #161616;
     border: 1px solid #2a2a2a;
     border-radius: 8px;
     color: #ececec;
     font-family: 'Inter', sans-serif;
+    font-size: 0.95em;
+    letter-spacing: 0.05em;
 }
 .stTextInput input:focus {
     border-color: #ff4500;
     box-shadow: 0 0 0 3px rgba(255,69,0,0.1);
 }
+.stTextInput input::placeholder { color: #444; }
 
-/* Containers */
 [data-testid="stContainer"] {
     background: #161616;
     border: 1px solid #222;
     border-radius: 12px;
 }
 
-/* Progress */
 .stProgress > div > div {
     background: linear-gradient(90deg, #ff4500, #ff8c00);
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #0f0f0f; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-/* Animations */
 @keyframes float {
     0%,100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
@@ -222,7 +208,7 @@ div[data-testid="column"]:nth-child(2) .stButton > button:hover {
 
 for k, v in [("page","home"),("question_id",None),("question_text",""),
              ("answer",None),("msg_index",0),("step_index",0),
-             ("show_admin_input",False)]:
+             ("show_admin_input",False),("show_check",False)]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -245,7 +231,7 @@ if is_admin or st.session_state.page == "admin_verified":
     if not pending:
         st.markdown("""
         <div style='text-align:center;padding:4rem 0;color:#444;'>
-            <div style='font-size:2.5rem;margin-bottom:0.8rem;'>✓</div>
+            <div style='font-size:2rem;margin-bottom:0.8rem;'>✓</div>
             <div>No pending questions.</div>
         </div>
         """, unsafe_allow_html=True)
@@ -255,10 +241,10 @@ if is_admin or st.session_state.page == "admin_verified":
             with st.container(border=True):
                 asked_time = q["asked_at"][:16].replace("T", " at ")
                 st.markdown(f"""
-                <div style='font-size:0.7em;color:#444;margin-bottom:0.5rem;'>{asked_time} · ID: {q['id']}</div>
+                <div style='font-size:0.7em;color:#444;margin-bottom:0.5rem;font-family:monospace;'>{asked_time} · #{q['id']}</div>
                 <div style='font-size:1.05em;color:#ececec;margin-bottom:1rem;font-weight:500;'>"{q['question']}"</div>
                 """, unsafe_allow_html=True)
-                answer = st.text_area("Reply:", key=f"ans_{q['id']}", height=90,
+                answer = st.text_area("", key=f"ans_{q['id']}", height=90,
                                       placeholder="Type your response...", label_visibility="collapsed")
                 col1, col2 = st.columns([4,1])
                 with col1:
@@ -276,7 +262,7 @@ if is_admin or st.session_state.page == "admin_verified":
     if answered:
         st.markdown("---")
         with st.expander(f"History ({len(answered)})"):
-            for q in reversed(answered[-10:]):
+            for q in reversed(answered):
                 st.markdown(f"""
                 <div style='margin-bottom:1rem;padding:0.8rem;background:#111;border-radius:8px;border-left:2px solid #333;'>
                     <div style='color:#666;font-size:0.82em;margin-bottom:0.3rem;'>Q: {q['question']}</div>
@@ -290,13 +276,7 @@ if st.session_state.page == "home":
     st.markdown("""
     <div style='text-align:center;padding:3rem 0 2.5rem;animation:fadein 0.4s ease;'>
         <div style='font-size:3rem;margin-bottom:1rem;animation:float 3s ease-in-out infinite;display:inline-block;'>🤖</div>
-        <h1 style='
-            font-size:2.6rem;
-            font-weight:700;
-            color:#ececec;
-            margin:0 0 0.4rem;
-            letter-spacing:-0.02em;
-        '>MrGPT</h1>
+        <h1 style='font-size:2.6rem;font-weight:700;color:#ececec;margin:0 0 0.4rem;letter-spacing:-0.02em;'>MrGPT</h1>
         <p style='color:#555;font-size:0.95em;margin:0;font-weight:400;'>Ask anything. Get an answer.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -304,12 +284,11 @@ if st.session_state.page == "home":
     question = st.text_area("", placeholder="Ask MrGPT anything...",
                              height=120, label_visibility="collapsed")
 
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1,2,1])
     with col2:
         if st.button("Ask MrGPT", use_container_width=True):
             if question.strip():
-                with st.spinner(""):
-                    qid = submit_question(question.strip())
+                qid = submit_question(question.strip())
                 st.session_state.question_id = qid
                 st.session_state.question_text = question.strip()
                 st.session_state.page = "waiting"
@@ -319,14 +298,40 @@ if st.session_state.page == "home":
             else:
                 st.error("Please enter a question.")
 
-    st.markdown("""
-    <div style='text-align:center;margin-top:5rem;'>
-        <div style='color:#222;font-size:0.72em;'>MrGPT · AI Assistant</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Check existing question
+    st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if st.button("Check my question →", use_container_width=True):
+            st.session_state.show_check = not st.session_state.show_check
+            st.rerun()
 
-    # Hidden admin access — tiny "team" link at the bottom
-    st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
+    if st.session_state.show_check:
+        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            check_id = st.text_input("", placeholder="Enter your question ID (e.g. A3F2B1C9)",
+                                     label_visibility="collapsed").strip().upper()
+            if check_id:
+                q = get_question(check_id)
+                if q is None:
+                    st.error("Question not found. It may have expired.")
+                elif q["status"] == "answered":
+                    st.session_state.question_id = q["id"]
+                    st.session_state.question_text = q["question"]
+                    st.session_state.answer = q["answer"]
+                    st.session_state.page = "answered"
+                    st.rerun()
+                else:
+                    st.session_state.question_id = q["id"]
+                    st.session_state.question_text = q["question"]
+                    st.session_state.page = "waiting"
+                    st.session_state.msg_index = random.randint(0, len(WAITING_MESSAGES)-1)
+                    st.session_state.step_index = 0
+                    st.rerun()
+
+    # Hidden admin dot
+    st.markdown("<div style='height:4rem;'></div>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([3,1,3])
     with col2:
         if st.button("·", use_container_width=True, key="admin_toggle"):
@@ -337,7 +342,7 @@ if st.session_state.page == "home":
         col1, col2, col3 = st.columns([1,2,1])
         with col2:
             pw = st.text_input("", type="password", placeholder="Access code",
-                               label_visibility="collapsed")
+                               label_visibility="collapsed", key="admin_pw")
             if pw == ADMIN_KEY:
                 st.session_state.page = "admin_verified"
                 st.rerun()
@@ -359,41 +364,39 @@ elif st.session_state.page == "waiting":
     """, unsafe_allow_html=True)
 
     q_text = st.session_state.question_text
+    qid = st.session_state.question_id
     st.markdown(f"""
-    <div style='
-        background:#161616;border:1px solid #222;border-radius:10px;
-        padding:1rem 1.2rem;margin:0 0 1.5rem;
-    '>
+    <div style='background:#161616;border:1px solid #222;border-radius:10px;padding:1rem 1.2rem;margin:0 0 1rem;'>
         <div style='font-size:0.7em;color:#444;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.05em;'>Your question</div>
         <div style='color:#ccc;font-size:0.95em;'>"{q_text}"</div>
     </div>
     """, unsafe_allow_html=True)
 
+    # Question ID — prominent, copyable
+    st.markdown(f"""
+    <div style='background:#0a0a0a;border:1px solid #1e1e1e;border-radius:8px;padding:0.8rem 1.2rem;margin:0 0 1.2rem;text-align:center;'>
+        <div style='font-size:0.7em;color:#444;margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;'>Your question ID — save this to check back later</div>
+        <div style='font-size:1.5rem;font-weight:700;color:#ff4500;letter-spacing:0.15em;font-family:monospace;'>{qid}</div>
+        <div style='font-size:0.7em;color:#333;margin-top:0.3rem;'>You can close this tab and return anytime</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # Fake progress
     st.markdown("""
-    <div style='margin-bottom:1.2rem;'>
+    <div style='margin-bottom:1rem;'>
         <div style='background:#161616;border-radius:4px;height:3px;overflow:hidden;'>
-            <div style='
-                height:100%;width:97%;
-                background:linear-gradient(90deg,#ff4500,#ff8c00);
-                animation:progress-stuck 4s ease-out forwards;
-            '></div>
+            <div style='height:100%;width:97%;background:linear-gradient(90deg,#ff4500,#ff8c00);animation:progress-stuck 4s ease-out forwards;'></div>
         </div>
         <div style='text-align:right;font-size:0.68em;color:#333;margin-top:0.3rem;'>97%</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Fake terminal steps
     completed = "".join(
         f'<div style="color:#2a4a2a;font-size:0.72em;">✓ {FAKE_STEPS[i]}</div>'
         for i in range(min(st.session_state.step_index, 7))
     )
     st.markdown(f"""
-    <div style='
-        background:#0a0a0a;border:1px solid #1a1a1a;border-radius:8px;
-        padding:0.8rem 1rem;margin-bottom:1.5rem;
-        font-family:monospace;
-    '>
+    <div style='background:#0a0a0a;border:1px solid #1a1a1a;border-radius:8px;padding:0.8rem 1rem;margin-bottom:1.5rem;font-family:monospace;'>
         {completed}
         <div style='color:#ff4500;font-size:0.72em;'>
             <span style='animation:blink 0.9s infinite;display:inline-block;'>▌</span> {step}
@@ -403,13 +406,11 @@ elif st.session_state.page == "waiting":
 
     col1, col2, col3 = st.columns([2,1,2])
     with col2:
-        if st.button("Cancel", use_container_width=True):
-            if st.session_state.question_id:
-                delete_question(st.session_state.question_id)
+        if st.button("← Back", use_container_width=True):
             st.session_state.page = "home"
-            st.session_state.question_id = None
             st.rerun()
 
+    # Poll for answer
     time.sleep(5)
     q = get_question(st.session_state.question_id)
     if q and q["status"] == "answered":
@@ -441,13 +442,8 @@ elif st.session_state.page == "answered":
     answer_text = st.session_state.answer or ""
     st.markdown(f"""
     <div style='
-        background:#161616;
-        border:1px solid #2a2a2a;
-        border-left:2px solid #ff4500;
-        border-radius:10px;
-        padding:1.4rem;
-        margin:0 0 1.5rem;
-        animation:fadein 0.5s ease;
+        background:#161616;border:1px solid #2a2a2a;border-left:2px solid #ff4500;
+        border-radius:10px;padding:1.4rem;margin:0 0 1.5rem;animation:fadein 0.5s ease;
     '>
         <div style='font-size:0.7em;color:#ff4500;margin-bottom:0.7rem;text-transform:uppercase;letter-spacing:0.05em;'>MrGPT</div>
         <div style='color:#ececec;font-size:1em;line-height:1.7;'>{answer_text}</div>
@@ -465,7 +461,5 @@ elif st.session_state.page == "answered":
             st.rerun()
 
     st.markdown("""
-    <div style='text-align:center;margin-top:3rem;color:#222;font-size:0.72em;'>
-        MrGPT · AI Assistant
-    </div>
+    <div style='text-align:center;margin-top:3rem;color:#222;font-size:0.72em;'>MrGPT · AI Assistant</div>
     """, unsafe_allow_html=True)
