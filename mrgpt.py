@@ -19,16 +19,16 @@ MAX_CONVOS      = 10
 MAX_MESSAGES    = 5
 
 MODEL_NAMES = [
-    "MrGPT-4.1",
-    "MrGPT-4.1 Haiku",
-    "MrGPT-4.1 Sonnet",
-    "MrGPT-4 Opus",
-    "MrGPT-o1",
-    "MrGPT-4 Flash",
-    "MrGPT-4.5 Extended",
-    "MrGPT Vision Pro",
-    "MrGPT-4 Instruct",
-    "MrGPT Nano 2.0",
+    "MrGPT-4o",
+    "MrGPT-4o mini",
+    "MrGPT o3",
+    "MrGPT o4-mini",
+    "MrGPT Sonnet 4.5",
+    "MrGPT Haiku 3.7",
+    "MrGPT Opus 4",
+    "MrGPT Flash 2.0",
+    "MrGPT R1",
+    "MrGPT Gemma 3",
 ]
 
 PERSONAS = {
@@ -529,15 +529,6 @@ with st.sidebar:
 </div>
 """, unsafe_allow_html=True)
 
-    chosen_model = st.selectbox(
-        "", MODEL_NAMES,
-        index=MODEL_NAMES.index(st.session_state.selected_model),
-        key="model_select", label_visibility="collapsed"
-    )
-    if chosen_model != st.session_state.selected_model:
-        st.session_state.selected_model = chosen_model
-        st.rerun()
-
     st.markdown("<div style='height:0.6rem;'></div>", unsafe_allow_html=True)
 
     if st.button("New conversation", key="sb_new", use_container_width=True):
@@ -573,19 +564,9 @@ with st.sidebar:
 
     st.markdown("<hr style='border-color:#1e1e1a;margin:0.4rem 0;'>", unsafe_allow_html=True)
 
-    if st.button("Settings", key="sb_admin_toggle", use_container_width=True):
-        st.session_state.show_admin_input = not st.session_state.show_admin_input
+    if st.button("Settings", key="sb_settings", use_container_width=True):
+        st.session_state.page = "settings"
         st.rerun()
-
-    if st.session_state.show_admin_input:
-        pw = st.text_input("", type="password", placeholder="Access code",
-                           label_visibility="collapsed", key="sb_admin_pw")
-        if pw == ADMIN_KEY:
-            st.session_state.page = "admin_verified"
-            st.session_state.show_admin_input = False
-            st.rerun()
-        elif pw:
-            st.markdown("<div style='font-size:0.72em;color:#a04040;padding:0.2rem 0.5rem;'>Incorrect.</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ADMIN
@@ -754,6 +735,52 @@ elif st.session_state.page == "about":
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SETTINGS
+# ══════════════════════════════════════════════════════════════════════════════
+elif st.session_state.page == "settings":
+    st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
+    col_back, col_title, _ = st.columns([1, 3, 1])
+    with col_back:
+        if st.button("Back", key="settings_back", use_container_width=True):
+            st.session_state.page = "home"
+            st.rerun()
+    with col_title:
+        st.markdown("<div style='text-align:center;padding:0.2rem 0 1.5rem;'><div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;'>PREFERENCES</div><div style='font-size:1.4em;font-weight:600;color:#d4d0c8;letter-spacing:-0.02em;'>Settings</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>MODEL</div>", unsafe_allow_html=True)
+    chosen_model = st.selectbox(
+        "", MODEL_NAMES,
+        index=MODEL_NAMES.index(st.session_state.selected_model),
+        key="settings_model_select", label_visibility="collapsed"
+    )
+    if chosen_model != st.session_state.selected_model:
+        st.session_state.selected_model = chosen_model
+        st.rerun()
+
+    st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>RESPONSE STYLE</div>", unsafe_allow_html=True)
+    st.selectbox("", ["Balanced", "Concise", "Detailed", "Creative"],
+                 key="settings_style", label_visibility="collapsed")
+
+    st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>HISTORY</div>", unsafe_allow_html=True)
+    if st.button("Clear conversation history", key="settings_clear_hist", use_container_width=False):
+        st.session_state.chat_history = []
+        st.rerun()
+
+    st.markdown("<div style='height:3rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#1e1e1a;'>", unsafe_allow_html=True)
+    st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.62em;color:#242420;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.4rem;'>support</div>", unsafe_allow_html=True)
+    access_code = st.text_input("", type="password", placeholder="Enter code",
+                                label_visibility="collapsed", key="settings_access_code")
+    if access_code == ADMIN_KEY:
+        st.session_state.page = "admin_verified"
+        st.rerun()
+    elif access_code:
+        st.markdown("<div style='font-size:0.68em;color:#a04040;'>Invalid code.</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HOME
