@@ -12,22 +12,23 @@ load_dotenv()
 JSONBIN_API_KEY = os.getenv("JSONBIN_API_KEY", "")
 JSONBIN_BIN_ID  = os.getenv("JSONBIN_BIN_ID", "")
 ADMIN_KEY       = os.getenv("ADMIN_KEY", "admin123")
+NTFY_TOPIC      = os.getenv("NTFY_TOPIC", "")
 JSONBIN_URL     = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
 HEADERS         = {"X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json"}
 MAX_CONVOS      = 10
 MAX_MESSAGES    = 5
 
 MODEL_NAMES = [
-    "MrGPT-9 Turbo Ultra Pro Max",
-    "MrGPT Haiku (Bad at Poetry Edition)",
-    "MrGPT Sonnet (Never Read One)",
-    "MrGPT Opus (No Idea What That Means)",
-    "MrGPT-o1 (The o Stands for Oops)",
-    "MrGPT Flash (Deceptively Slow)",
-    "MrGPT Extended Thinking (Takes Naps)",
-    "MrGPT Vision (Legally Blind)",
-    "MrGPT Instruct (Does Not Follow Instructions)",
-    "MrGPT Nano (Still Huge)",
+    "MrGPT-4.1",
+    "MrGPT-4.1 Haiku",
+    "MrGPT-4.1 Sonnet",
+    "MrGPT-4 Opus",
+    "MrGPT-o1",
+    "MrGPT-4 Flash",
+    "MrGPT-4.5 Extended",
+    "MrGPT Vision Pro",
+    "MrGPT-4 Instruct",
+    "MrGPT Nano 2.0",
 ]
 
 PERSONAS = {
@@ -86,6 +87,19 @@ def save_data(data):
     except:
         pass
 
+def notify_admin(title: str, body: str):
+    if not NTFY_TOPIC:
+        return
+    try:
+        requests.post(
+            f"https://ntfy.sh/{NTFY_TOPIC}",
+            data=body.encode("utf-8"),
+            headers={"Title": title, "Priority": "high", "Tags": "bell"},
+            timeout=3,
+        )
+    except Exception:
+        pass
+
 def new_debate(topic, position_a, label_a):
     data = get_data()
     if "debates" not in data:
@@ -103,6 +117,7 @@ def new_debate(topic, position_a, label_a):
         "created_at": datetime.now().isoformat(),
     }
     save_data(data)
+    notify_admin("New debate started", f"Topic: {topic[:80]}")
     return did
 
 def join_debate(did, position_b, label_b):
@@ -112,6 +127,8 @@ def join_debate(did, position_b, label_b):
     data["debates"][did]["side_b"] = {"position": position_b, "label": label_b}
     data["debates"][did]["status"] = "pending"
     save_data(data)
+    topic = data["debates"][did].get("topic", did)
+    notify_admin("Debate ready for verdict", f"Topic: {topic[:80]} — both sides submitted")
     return True
 
 def get_debate(did):
@@ -147,6 +164,7 @@ def new_roast(name, age, job, fact, wildcard):
         "created_at": datetime.now().isoformat(),
     }
     save_data(data)
+    notify_admin("New roast request", f"{name}, {age}, {job}")
     return rid
 
 def get_roast(rid):
@@ -181,12 +199,15 @@ def add_message(cid, question_text):
     if cid not in data["conversations"]:
         return None
     mid = str(uuid.uuid4())[:6].upper()
+    persona_key = data["conversations"][cid].get("persona", "default")
+    persona_name = PERSONAS.get(persona_key, PERSONAS["default"])["name"]
     data["conversations"][cid]["messages"].append({
         "id": mid, "question": question_text, "answer": None,
         "status": "pending", "rating": None,
         "asked_at": datetime.now().isoformat(),
     })
     save_data(data)
+    notify_admin(f"New message — {persona_name}", question_text[:80])
     return mid
 
 def get_conversation(cid):
@@ -235,6 +256,21 @@ def delete_conversation(cid):
     if cid in data["conversations"]:
         del data["conversations"][cid]
     save_data(data)
+
+def _mins_ago(iso_str: str) -> str:
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        diff = int((datetime.now() - dt).total_seconds() / 60)
+        if diff < 1:
+            return "just now"
+        if diff == 1:
+            return "1 min ago"
+        if diff < 60:
+            return f"{diff} mins ago"
+        hours = diff // 60
+        return f"{hours}h ago"
+    except Exception:
+        return ""
 
 st.set_page_config(page_title="MrGPT", page_icon="M", layout="wide")
 
@@ -556,16 +592,6 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 if is_admin or st.session_state.page == "admin_verified":
     st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
-    col_back, col_title, col_refresh = st.columns([1, 3, 1])
-    with col_back:
-        if st.button("Back", key="admin_back", use_container_width=True):
-            st.session_state.page = "home"
-            st.rerun()
-    with col_title:
-        st.markdown("<div style='text-align:center;padding:0.2rem 0 1rem;'><div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;'>STAFF ACCESS</div><div style='font-size:1.4em;font-weight:600;color:#d4d0c8;letter-spacing:-0.02em;'>Inbox</div></div>", unsafe_allow_html=True)
-    with col_refresh:
-        if st.button("Refresh", key="admin_refresh", use_container_width=True):
-            st.rerun()
 
     data = get_data()
     convos = data.get("conversations", {})
@@ -573,6 +599,21 @@ if is_admin or st.session_state.page == "admin_verified":
               if any(m["status"] == "pending" for m in c["messages"])]
     closed = [(cid, c) for cid, c in convos.items()
               if not any(m["status"] == "pending" for m in c["messages"]) and c["messages"]]
+    pending_debates_count = sum(1 for d in data.get("debates", {}).values() if d["status"] == "pending")
+    pending_roasts_count = sum(1 for r in data.get("roasts", {}).values() if r["status"] == "pending")
+    total_pending = len(active) + pending_debates_count + pending_roasts_count
+    inbox_label = f"Inbox ({total_pending})" if total_pending else "Inbox"
+
+    col_back, col_title, col_refresh = st.columns([1, 3, 1])
+    with col_back:
+        if st.button("Back", key="admin_back", use_container_width=True):
+            st.session_state.page = "home"
+            st.rerun()
+    with col_title:
+        st.markdown(f"<div style='text-align:center;padding:0.2rem 0 1rem;'><div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;'>STAFF ACCESS</div><div style='font-size:1.4em;font-weight:600;color:#d4d0c8;letter-spacing:-0.02em;'>{inbox_label}</div></div>", unsafe_allow_html=True)
+    with col_refresh:
+        if st.button("Refresh", key="admin_refresh", use_container_width=True):
+            st.rerun()
 
     if not active:
         st.markdown("<div style='text-align:center;padding:4rem 0;color:#2e2e28;font-family:DM Mono,monospace;font-size:0.85em;'>Nothing pending.</div>", unsafe_allow_html=True)
@@ -598,7 +639,9 @@ if is_admin or st.session_state.page == "admin_verified":
                     if m["status"] == "answered":
                         st.markdown(f"<div style='padding:0.5rem 0;border-bottom:1px solid #242420;'><div style='font-size:0.78em;color:#3a3830;'>Q: {m['question']}</div><div style='font-size:0.82em;color:#d4d0c8;margin-top:0.2rem;'>A: {m['answer']}{rstr}</div></div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='padding:0.6rem 0;border-left:2px solid #c9642a;padding-left:0.8rem;margin:0.5rem 0;'><div style='font-size:0.68em;color:#c9642a;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>PENDING / {m['id']}</div><div style='font-size:1em;color:#d4d0c8;font-weight:500;'>{m['question']}</div></div>", unsafe_allow_html=True)
+                        age = _mins_ago(m.get("asked_at", ""))
+                        age_str = f" · {age}" if age else ""
+                        st.markdown(f"<div style='padding:0.6rem 0;border-left:2px solid #c9642a;padding-left:0.8rem;margin:0.5rem 0;'><div style='font-size:0.68em;color:#c9642a;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>PENDING / {m['id']}{age_str}</div><div style='font-size:1em;color:#d4d0c8;font-weight:500;'>{m['question']}</div></div>", unsafe_allow_html=True)
                         ans = st.text_area("", key=f"ans_{cid}_{m['id']}", height=70,
                                            placeholder="Reply...", label_visibility="collapsed")
                         c1, c2 = st.columns([5, 1])
@@ -624,9 +667,17 @@ if is_admin or st.session_state.page == "admin_verified":
                         st.markdown(f"<div style='font-size:0.8em;padding:0.4rem 0;border-bottom:1px solid #242420;'><div style='color:#3a3830;'>Q: {m['question']}</div><div style='color:#d4d0c8;'>A: {m['answer']}{r}</div></div>", unsafe_allow_html=True)
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
+    # ── NTFY SETUP HINT ───────────────────────────────────────────────────────
+    if not NTFY_TOPIC:
+        with st.expander("Get notified when messages arrive"):
+            st.markdown("""<div style='font-size:0.82em;color:#5a5850;line-height:1.8;'>
+Set the <code style='color:#c9642a;'>NTFY_TOPIC</code> environment variable to a secret string (e.g. <code>mrgpt-admin-abc123</code>).<br>
+Then open <strong>ntfy.sh/&lt;your-topic&gt;</strong> on your phone or desktop to subscribe — no account needed.<br>
+You'll get a push notification every time a message, debate, or roast comes in.
+</div>""", unsafe_allow_html=True)
+
     # ── ADMIN: DEBATES ────────────────────────────────────────────────────────
-    data2 = get_data()
-    pending_debates = [(did, d) for did, d in data2.get("debates", {}).items() if d["status"] == "pending"]
+    pending_debates = [(did, d) for did, d in data.get("debates", {}).items() if d["status"] == "pending"]
     if pending_debates:
         st.markdown("<hr style='border-color:#242420;margin:2rem 0 1.5rem;'>", unsafe_allow_html=True)
         st.markdown(f"<div style='color:#c9642a;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>DEBATES — {len(pending_debates)} PENDING</div>", unsafe_allow_html=True)
@@ -648,8 +699,7 @@ if is_admin or st.session_state.page == "admin_verified":
                         st.rerun()
 
     # ── ADMIN: ROASTS ─────────────────────────────────────────────────────────
-    data3 = get_data()
-    pending_roasts = [(rid, r) for rid, r in data3.get("roasts", {}).items() if r["status"] == "pending"]
+    pending_roasts = [(rid, r) for rid, r in data.get("roasts", {}).items() if r["status"] == "pending"]
     if pending_roasts:
         st.markdown("<hr style='border-color:#242420;margin:2rem 0 1.5rem;'>", unsafe_allow_html=True)
         st.markdown(f"<div style='color:#c9642a;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>ROASTS — {len(pending_roasts)} PENDING</div>", unsafe_allow_html=True)
