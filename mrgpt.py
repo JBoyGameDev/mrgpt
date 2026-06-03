@@ -9,10 +9,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-JSONBIN_API_KEY = os.getenv("JSONBIN_API_KEY", "")
-JSONBIN_BIN_ID  = os.getenv("JSONBIN_BIN_ID", "")
-ADMIN_KEY       = os.getenv("ADMIN_KEY", "admin123")
-NTFY_TOPIC      = os.getenv("NTFY_TOPIC", "")
+def _secret(key, default=""):
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.getenv(key, default)
+
+JSONBIN_API_KEY = _secret("JSONBIN_API_KEY", "")
+JSONBIN_BIN_ID  = _secret("JSONBIN_BIN_ID", "")
+ADMIN_KEY       = _secret("ADMIN_KEY", "admin123")
+NTFY_TOPIC      = _secret("NTFY_TOPIC", "")
 JSONBIN_URL     = f"https://api.jsonbin.io/v3/b/{JSONBIN_BIN_ID}"
 HEADERS         = {"X-Master-Key": JSONBIN_API_KEY, "Content-Type": "application/json"}
 MAX_CONVOS      = 10
@@ -276,20 +282,19 @@ st.set_page_config(page_title="MrGPT", page_icon="M", layout="wide")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Styrene+A:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body, .stApp {
-    background-color: #1a1916;
-    color: #d4d0c8;
+    background: #212121;
+    color: #ececec;
     font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 .block-container {
-    max-width: 680px !important;
-    padding: 0 1.5rem !important;
+    max-width: 760px !important;
+    padding: 0 1.5rem 2rem !important;
     margin: 0 auto;
 }
 
@@ -298,8 +303,8 @@ header { background: transparent !important; }
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background: #141410 !important;
-    border-right: 1px solid #242420;
+    background: #171717 !important;
+    border-right: 1px solid #2d2d2d;
 }
 [data-testid="stSidebar"] .block-container {
     padding: 1rem 0.75rem !important;
@@ -309,179 +314,209 @@ header { background: transparent !important; }
 
 [data-testid="stSidebar"] .stButton > button {
     background: transparent;
-    color: #5a5850;
+    color: #8e8ea0;
     border: none;
-    border-radius: 6px;
-    font-size: 0.82em;
+    border-radius: 8px;
+    font-size: 0.84em;
     font-weight: 400;
-    padding: 0.45rem 0.7rem;
+    padding: 0.5rem 0.75rem;
     text-align: left;
     width: 100%;
-    transition: all 0.1s;
+    transition: background 0.15s, color 0.15s;
     font-family: 'DM Sans', sans-serif;
-    letter-spacing: 0.01em;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: #1e1e1a;
-    color: #d4d0c8;
+    background: #252525;
+    color: #ececec;
 }
 
-/* selectbox in sidebar */
 [data-testid="stSidebar"] .stSelectbox > div > div {
-    background: #1e1e1a !important;
-    border: 1px solid #2a2a24 !important;
-    border-radius: 6px !important;
-    color: #5a5850 !important;
+    background: #252525 !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    color: #8e8ea0 !important;
     font-family: 'DM Mono', monospace !important;
     font-size: 0.72em !important;
 }
 [data-testid="stSidebar"] .stSelectbox label { display: none; }
 
-/* Main buttons */
+/* ── MAIN BUTTONS ── */
 section.main .stButton > button {
-    background: #242420;
-    color: #d4d0c8;
-    border: 1px solid #2e2e28;
-    border-radius: 8px;
+    background: #2f2f2f;
+    color: #ececec;
+    border: 1px solid #3d3d3d;
+    border-radius: 10px;
     font-family: 'DM Sans', sans-serif;
     font-weight: 500;
-    font-size: 0.88em;
+    font-size: 0.9em;
     letter-spacing: 0.01em;
-    padding: 0.6em 1.2em;
-    transition: all 0.12s;
+    padding: 0.65em 1.4em;
+    transition: background 0.15s, border-color 0.15s;
     width: 100%;
 }
 section.main .stButton > button:hover {
-    background: #2a2a24;
-    border-color: #3a3a32;
+    background: #3a3a3a;
+    border-color: #4d4d4d;
 }
 
-/* Send button — accent */
+/* ── SEND / PRIMARY BUTTON ── */
 .send-btn .stButton > button {
-    background: #c9642a;
-    border-color: #c9642a;
+    background: #c96442;
+    border-color: #c96442;
     color: #fff;
     font-weight: 600;
 }
 .send-btn .stButton > button:hover {
-    background: #b85c26;
-    border-color: #b85c26;
+    background: #b55a3c;
+    border-color: #b55a3c;
 }
 
-/* Textarea */
+/* ── TEXTAREA ── */
 .stTextArea textarea {
-    background: #1e1e1a;
-    border: 1px solid #2e2e28;
-    border-radius: 12px;
-    color: #d4d0c8;
+    background: #2a2a2a;
+    border: 1px solid #3d3d3d;
+    border-radius: 14px;
+    color: #ececec;
     font-family: 'DM Sans', sans-serif;
     font-size: 0.96em;
     line-height: 1.7;
     padding: 0.9rem 1.1rem;
     resize: none;
-    transition: border-color 0.12s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 .stTextArea textarea:focus {
-    border-color: #5a5248;
-    box-shadow: none;
+    border-color: #c96442;
+    box-shadow: 0 0 0 3px rgba(201,100,66,0.12);
     outline: none;
 }
-.stTextArea textarea::placeholder { color: #3a3830; }
+.stTextArea textarea::placeholder { color: #4a4a4a; }
 
+/* ── TEXT INPUT ── */
 .stTextInput input {
-    background: #1e1e1a !important;
-    border: 1px solid #2e2e28 !important;
-    border-radius: 8px !important;
-    color: #d4d0c8 !important;
+    background: #2a2a2a !important;
+    border: 1px solid #3d3d3d !important;
+    border-radius: 10px !important;
+    color: #ececec !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 0.9em !important;
+    padding: 0.65rem 1rem !important;
 }
 .stTextInput input:focus {
-    border-color: #5a5248 !important;
-    box-shadow: none !important;
+    border-color: #c96442 !important;
+    box-shadow: 0 0 0 3px rgba(201,100,66,0.12) !important;
 }
-.stTextInput input::placeholder { color: #3a3830 !important; }
+.stTextInput input::placeholder { color: #4a4a4a !important; }
 
+/* ── CONTAINERS ── */
 [data-testid="stContainer"] {
-    background: #1e1e1a;
-    border: 1px solid #2a2a24;
-    border-radius: 10px;
+    background: #2a2a2a;
+    border: 1px solid #383838;
+    border-radius: 12px;
 }
 [data-testid="stExpander"] {
-    background: #161612;
-    border: 1px solid #242420;
-    border-radius: 8px;
+    background: #1e1e1e;
+    border: 1px solid #2d2d2d;
+    border-radius: 10px;
 }
 
-hr { border-color: #242420 !important; }
+/* ── SELECTBOX ── */
+.stSelectbox > div > div {
+    background: #2a2a2a !important;
+    border: 1px solid #3d3d3d !important;
+    border-radius: 10px !important;
+    color: #ececec !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
 
+/* ── FORM ── */
+[data-testid="stForm"] {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+hr { border-color: #2d2d2d !important; }
+
+/* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #141410; }
-::-webkit-scrollbar-thumb { background: #2a2a24; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3830; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #383838; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #4d4d4d; }
 
-/* ── Logo mark ── */
+/* ── LOGO ── */
 .mrgpt-logo {
-    width: 28px; height: 28px;
-    background: linear-gradient(135deg, #c9642a, #e8a060, #c9642a);
-    background-size: 200%;
-    border-radius: 6px;
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, #c96442, #e8956a);
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: #fff;
-    letter-spacing: -0.02em;
     font-family: 'DM Sans', sans-serif;
     flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(201,100,66,0.25);
 }
 
-/* ── Message styling — no bubbles, just text ── */
+/* ── CHAT MESSAGES ── */
 .msg-you {
-    padding: 1.4rem 0 0.4rem;
-    border-top: 1px solid #242420;
-    margin-top: 0.5rem;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.6rem 0;
+    animation: fadein 0.25s ease;
 }
-.msg-you-label {
-    font-size: 0.72em;
-    font-weight: 600;
-    color: #3a3830;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-family: 'DM Mono', monospace;
-    margin-bottom: 0.5rem;
-}
-.msg-you-text {
-    font-size: 0.97em;
-    color: #d4d0c8;
-    line-height: 1.7;
+.msg-you-bubble {
+    background: #2f2f2f;
+    border: 1px solid #3d3d3d;
+    border-radius: 18px 18px 4px 18px;
+    padding: 0.8rem 1.15rem;
+    max-width: 78%;
+    font-size: 0.96em;
+    color: #ececec;
+    line-height: 1.65;
     font-family: 'DM Sans', sans-serif;
 }
 .msg-ai {
-    padding: 0.6rem 0 1.2rem;
+    display: flex;
+    gap: 0.8rem;
+    padding: 0.6rem 0;
+    animation: fadein 0.3s ease;
+    align-items: flex-start;
 }
-.msg-ai-label {
-    font-size: 0.72em;
-    font-weight: 600;
-    color: #c9642a;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-family: 'DM Mono', monospace;
-    margin-bottom: 0.6rem;
+.msg-ai-avatar {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #c96442, #e8956a);
+    border-radius: 7px;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.7rem;
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: 2px;
+    box-shadow: 0 1px 6px rgba(201,100,66,0.2);
+}
+.msg-ai-content { flex: 1; min-width: 0; }
+.msg-ai-name {
+    font-size: 0.71em;
+    font-weight: 600;
+    color: #c96442;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.4rem;
 }
 .msg-ai-text {
-    font-size: 0.97em;
-    color: #d4d0c8;
-    line-height: 1.85;
+    font-size: 0.96em;
+    color: #ececec;
+    line-height: 1.8;
     font-family: 'DM Sans', sans-serif;
 }
 
-/* ── Animations ── */
-@keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+/* ── ANIMATIONS ── */
+@keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 @keyframes pulse-dot { 0%,100% { opacity: 0.2; transform: scale(0.75); } 50% { opacity: 0.7; transform: scale(1); } }
 @keyframes progress-stuck { 0% { width: 0%; } 55% { width: 94%; } 70% { width: 97%; } 100% { width: 97%; } }
@@ -523,9 +558,9 @@ if url_debate and not st.session_state.debate_id:
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-<div style='padding:0.6rem 0.2rem 1rem;display:flex;align-items:center;gap:0.6rem;'>
-    <div style='width:28px;height:28px;background:linear-gradient(135deg,#c9642a,#e8a060,#c9642a);background-size:200%;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.82rem;color:#fff;font-family:DM Sans,sans-serif;flex-shrink:0;animation:shimmer-logo 4s ease-in-out infinite;'>M</div>
-    <span style='font-weight:600;font-size:0.95em;color:#d4d0c8;font-family:DM Sans,sans-serif;letter-spacing:-0.01em;'>MrGPT</span>
+<div style='padding:0.75rem 0.2rem 1.1rem;display:flex;align-items:center;gap:0.65rem;'>
+    <div style='width:30px;height:30px;background:linear-gradient(135deg,#c96442,#e8956a);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.82rem;color:#fff;font-family:DM Sans,sans-serif;flex-shrink:0;box-shadow:0 2px 8px rgba(201,100,66,0.25);'>M</div>
+    <span style='font-weight:600;font-size:0.95em;color:#ececec;font-family:DM Sans,sans-serif;letter-spacing:-0.02em;'>MrGPT</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -549,10 +584,10 @@ with st.sidebar:
         st.session_state.page = "roast_home"
         st.rerun()
 
-    st.markdown("<div style='height:0.3rem;'></div><hr style='border-color:#1e1e1a;margin:0.4rem 0;'>", unsafe_allow_html=True)
+    st.markdown("<div style='height:0.3rem;'></div><hr style='border-color:#2d2d2d;margin:0.4rem 0;'>", unsafe_allow_html=True)
 
     if st.session_state.chat_history:
-        st.markdown("<div style='font-size:0.62em;color:#2e2e28;padding:0.4rem 0.4rem 0.5rem;text-transform:uppercase;letter-spacing:0.1em;font-family:DM Mono,monospace;'>Recents</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.62em;color:#444;padding:0.4rem 0.4rem 0.5rem;text-transform:uppercase;letter-spacing:0.1em;font-family:DM Mono,monospace;'>Recents</div>", unsafe_allow_html=True)
         for i, chat in enumerate(reversed(st.session_state.chat_history[-10:])):
             label = chat["question"][:30] + ("..." if len(chat["question"]) > 30 else "")
             if st.button(label, key=f"hist_{i}", use_container_width=True):
@@ -560,9 +595,9 @@ with st.sidebar:
                 st.session_state.page = "chat"
                 st.rerun()
     else:
-        st.markdown("<div style='font-size:0.75em;color:#242420;padding:0.5rem;text-align:center;font-family:DM Mono,monospace;'>No conversations yet</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.75em;color:#444;padding:0.5rem;text-align:center;font-family:DM Mono,monospace;'>No conversations yet</div>", unsafe_allow_html=True)
 
-    st.markdown("<hr style='border-color:#1e1e1a;margin:0.4rem 0;'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#2d2d2d;margin:0.4rem 0;'>", unsafe_allow_html=True)
 
     if st.button("Settings", key="sb_settings", use_container_width=True):
         st.session_state.page = "settings"
@@ -591,21 +626,21 @@ if is_admin or st.session_state.page == "admin_verified":
             st.session_state.page = "home"
             st.rerun()
     with col_title:
-        st.markdown(f"<div style='text-align:center;padding:0.2rem 0 1rem;'><div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;'>STAFF ACCESS</div><div style='font-size:1.4em;font-weight:600;color:#d4d0c8;letter-spacing:-0.02em;'>{inbox_label}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center;padding:0.2rem 0 1rem;'><div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;'>STAFF ACCESS</div><div style='font-size:1.4em;font-weight:600;color:#ececec;letter-spacing:-0.02em;'>{inbox_label}</div></div>", unsafe_allow_html=True)
     with col_refresh:
         if st.button("Refresh", key="admin_refresh", use_container_width=True):
             st.rerun()
 
     if not active:
-        st.markdown("<div style='text-align:center;padding:4rem 0;color:#2e2e28;font-family:DM Mono,monospace;font-size:0.85em;'>Nothing pending.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center;padding:4rem 0;color:#444;font-family:DM Mono,monospace;font-size:0.85em;'>Nothing pending.</div>", unsafe_allow_html=True)
     else:
-        st.markdown(f"<div style='color:#c9642a;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>{len(active)} ACTIVE</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#c96442;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>{len(active)} ACTIVE</div>", unsafe_allow_html=True)
         for cid, convo in active:
             p = PERSONAS.get(convo.get("persona", "default"), PERSONAS["default"])
             with st.container(border=True):
                 col_a, col_b = st.columns([4, 1])
                 with col_a:
-                    st.markdown(f"<div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>{p['name']} / #{cid}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>{p['name']} / #{cid}</div>", unsafe_allow_html=True)
                 with col_b:
                     if not convo.get("revealed"):
                         if st.button("Reveal", key=f"reveal_{cid}", use_container_width=True):
@@ -618,11 +653,11 @@ if is_admin or st.session_state.page == "admin_verified":
                     r = m.get("rating", "")
                     rstr = " [+]" if r == "up" else (" [-]" if r == "down" else "")
                     if m["status"] == "answered":
-                        st.markdown(f"<div style='padding:0.5rem 0;border-bottom:1px solid #242420;'><div style='font-size:0.78em;color:#3a3830;'>Q: {m['question']}</div><div style='font-size:0.82em;color:#d4d0c8;margin-top:0.2rem;'>A: {m['answer']}{rstr}</div></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding:0.5rem 0;border-bottom:1px solid #242420;'><div style='font-size:0.78em;color:#555;'>Q: {m['question']}</div><div style='font-size:0.82em;color:#ececec;margin-top:0.2rem;'>A: {m['answer']}{rstr}</div></div>", unsafe_allow_html=True)
                     else:
                         age = _mins_ago(m.get("asked_at", ""))
                         age_str = f" · {age}" if age else ""
-                        st.markdown(f"<div style='padding:0.6rem 0;border-left:2px solid #c9642a;padding-left:0.8rem;margin:0.5rem 0;'><div style='font-size:0.68em;color:#c9642a;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>PENDING / {m['id']}{age_str}</div><div style='font-size:1em;color:#d4d0c8;font-weight:500;'>{m['question']}</div></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding:0.6rem 0;border-left:2px solid #c96442;padding-left:0.8rem;margin:0.5rem 0;'><div style='font-size:0.68em;color:#c96442;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>PENDING / {m['id']}{age_str}</div><div style='font-size:1em;color:#ececec;font-weight:500;'>{m['question']}</div></div>", unsafe_allow_html=True)
                         ans = st.text_area("", key=f"ans_{cid}_{m['id']}", height=70,
                                            placeholder="Reply...", label_visibility="collapsed")
                         c1, c2 = st.columns([5, 1])
@@ -641,18 +676,18 @@ if is_admin or st.session_state.page == "admin_verified":
         with st.expander(f"History ({len(closed)})"):
             for cid, convo in reversed(closed[-5:]):
                 p = PERSONAS.get(convo.get("persona", "default"), PERSONAS["default"])
-                st.markdown(f"<div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>{p['name']} / #{cid}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>{p['name']} / #{cid}</div>", unsafe_allow_html=True)
                 for m in convo["messages"]:
                     if m.get("answer") and m.get("question"):
                         r = " [+]" if m.get("rating") == "up" else (" [-]" if m.get("rating") == "down" else "")
-                        st.markdown(f"<div style='font-size:0.8em;padding:0.4rem 0;border-bottom:1px solid #242420;'><div style='color:#3a3830;'>Q: {m['question']}</div><div style='color:#d4d0c8;'>A: {m['answer']}{r}</div></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:0.8em;padding:0.4rem 0;border-bottom:1px solid #242420;'><div style='color:#555;'>Q: {m['question']}</div><div style='color:#ececec;'>A: {m['answer']}{r}</div></div>", unsafe_allow_html=True)
                 st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
 
     # ── NTFY SETUP HINT ───────────────────────────────────────────────────────
     if not NTFY_TOPIC:
         with st.expander("Get notified when messages arrive"):
-            st.markdown("""<div style='font-size:0.82em;color:#5a5850;line-height:1.8;'>
-Set the <code style='color:#c9642a;'>NTFY_TOPIC</code> environment variable to a secret string (e.g. <code>mrgpt-admin-abc123</code>).<br>
+            st.markdown("""<div style='font-size:0.82em;color:#8e8ea0;line-height:1.8;'>
+Set the <code style='color:#c96442;'>NTFY_TOPIC</code> environment variable to a secret string (e.g. <code>mrgpt-admin-abc123</code>).<br>
 Then open <strong>ntfy.sh/&lt;your-topic&gt;</strong> on your phone or desktop to subscribe — no account needed.<br>
 You'll get a push notification every time a message, debate, or roast comes in.
 </div>""", unsafe_allow_html=True)
@@ -660,17 +695,17 @@ You'll get a push notification every time a message, debate, or roast comes in.
     # ── ADMIN: DEBATES ────────────────────────────────────────────────────────
     pending_debates = [(did, d) for did, d in data.get("debates", {}).items() if d["status"] == "pending"]
     if pending_debates:
-        st.markdown("<hr style='border-color:#242420;margin:2rem 0 1.5rem;'>", unsafe_allow_html=True)
-        st.markdown(f"<div style='color:#c9642a;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>DEBATES — {len(pending_debates)} PENDING</div>", unsafe_allow_html=True)
+        st.markdown("<hr style='border-color:#2d2d2d;margin:2rem 0 1.5rem;'>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#c96442;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>DEBATES — {len(pending_debates)} PENDING</div>", unsafe_allow_html=True)
         for did, debate in pending_debates:
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.6rem;'>#{did}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='font-size:1em;font-weight:600;color:#d4d0c8;margin-bottom:1rem;'>Topic: {debate['topic']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.6rem;'>#{did}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1em;font-weight:600;color:#ececec;margin-bottom:1rem;'>Topic: {debate['topic']}</div>", unsafe_allow_html=True)
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    st.markdown(f"<div style='background:#1e1e1a;border:1px solid #2e2e28;border-radius:8px;padding:0.8rem;'><div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>SIDE A — {debate['side_a']['label']}</div><div style='font-size:0.85em;color:#d4d0c8;line-height:1.6;'>{debate['side_a']['position']}</div></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#2a2a2a;border:1px solid #3d3d3d;border-radius:8px;padding:0.8rem;'><div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>SIDE A — {debate['side_a']['label']}</div><div style='font-size:0.85em;color:#ececec;line-height:1.6;'>{debate['side_a']['position']}</div></div>", unsafe_allow_html=True)
                 with col_b:
-                    st.markdown(f"<div style='background:#1e1e1a;border:1px solid #2e2e28;border-radius:8px;padding:0.8rem;'><div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>SIDE B — {debate['side_b']['label']}</div><div style='font-size:0.85em;color:#d4d0c8;line-height:1.6;'>{debate['side_b']['position']}</div></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#2a2a2a;border:1px solid #3d3d3d;border-radius:8px;padding:0.8rem;'><div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>SIDE B — {debate['side_b']['label']}</div><div style='font-size:0.85em;color:#ececec;line-height:1.6;'>{debate['side_b']['position']}</div></div>", unsafe_allow_html=True)
                 verdict = st.text_area("", key=f"dverdict_{did}", height=80, placeholder="Write MrGPT's verdict...", label_visibility="collapsed")
                 winner = st.radio("Winner:", ["Side A", "Side B", "Both wrong, frankly"], key=f"dwinner_{did}", horizontal=True)
                 if st.button("Deliver verdict", key=f"dsub_{did}", use_container_width=True):
@@ -682,12 +717,12 @@ You'll get a push notification every time a message, debate, or roast comes in.
     # ── ADMIN: ROASTS ─────────────────────────────────────────────────────────
     pending_roasts = [(rid, r) for rid, r in data.get("roasts", {}).items() if r["status"] == "pending"]
     if pending_roasts:
-        st.markdown("<hr style='border-color:#242420;margin:2rem 0 1.5rem;'>", unsafe_allow_html=True)
-        st.markdown(f"<div style='color:#c9642a;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>ROASTS — {len(pending_roasts)} PENDING</div>", unsafe_allow_html=True)
+        st.markdown("<hr style='border-color:#2d2d2d;margin:2rem 0 1.5rem;'>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:#c96442;font-size:0.72em;font-weight:600;margin-bottom:1rem;letter-spacing:0.08em;font-family:DM Mono,monospace;'>ROASTS — {len(pending_roasts)} PENDING</div>", unsafe_allow_html=True)
         for rid, roast in pending_roasts:
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.5rem;'>#{rid}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='padding:0.8rem;background:#1e1e1a;border-radius:8px;margin-bottom:0.8rem;'><div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>PROFILE</div><div style='font-size:0.85em;color:#d4d0c8;line-height:1.8;'>Name: {roast['name']}<br>Age: {roast['age']}<br>Job: {roast['job']}<br>Embarrassing fact: {roast['fact']}<br>Wildcard: {roast.get('wildcard') or 'none'}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.5rem;'>#{rid}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='padding:0.8rem;background:#2a2a2a;border-radius:8px;margin-bottom:0.8rem;'><div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>PROFILE</div><div style='font-size:0.85em;color:#ececec;line-height:1.8;'>Name: {roast['name']}<br>Age: {roast['age']}<br>Job: {roast['job']}<br>Embarrassing fact: {roast['fact']}<br>Wildcard: {roast.get('wildcard') or 'none'}</div></div>", unsafe_allow_html=True)
                 roast_text = st.text_area("", key=f"roasttxt_{rid}", height=100, placeholder="Write the roast...", label_visibility="collapsed")
                 if st.button("Deliver roast", key=f"roastsub_{rid}", use_container_width=True):
                     if roast_text.strip():
@@ -702,36 +737,36 @@ You'll get a push notification every time a message, debate, or roast comes in.
 elif st.session_state.page == "about":
     st.markdown("""
 <div style='padding:4rem 0 2.5rem;animation:fadein 0.4s ease;'>
-    <div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.8rem;'>ABOUT</div>
-    <h1 style='font-size:2.4rem;font-weight:700;color:#d4d0c8;margin:0 0 1.2rem;letter-spacing:-0.03em;line-height:1.1;'>MrGPT is not like other AI companies.</h1>
-    <p style='color:#5a5850;font-size:1em;line-height:1.8;margin-bottom:1.5rem;'>MrGPT was founded in a garage in 2019 by a team of world-class researchers, engineers, and one guy who really just wanted to see what would happen. After years of rigorous training, unsafe testing, and a brief but memorable partnership with a fortune cookie manufacturer in Guangzhou, MrGPT-1 was born. It did not work at all.</p>
-    <p style='color:#5a5850;font-size:1em;line-height:1.8;margin-bottom:1.5rem;'>By MrGPT-4, the team had pivoted from "general intelligence" to "plausible confidence," which proved far more achievable and, frankly, more useful. Users reported feeling satisfied with responses 94% of the time. The remaining 6% reported confusion, which the team classified as "expected behavior."</p>
-    <p style='color:#5a5850;font-size:1em;line-height:1.8;margin-bottom:2.5rem;'>MrGPT-9, the current model, represents the culmination of everything the team has learned. It is fast, mostly coherent, and has never once caught fire. The team considers this their greatest achievement.</p>
-    <hr style='border-color:#242420;margin-bottom:2.5rem;'>
+    <div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.8rem;'>ABOUT</div>
+    <h1 style='font-size:2.4rem;font-weight:700;color:#ececec;margin:0 0 1.2rem;letter-spacing:-0.03em;line-height:1.1;'>MrGPT is not like other AI companies.</h1>
+    <p style='color:#8e8ea0;font-size:1em;line-height:1.8;margin-bottom:1.5rem;'>MrGPT was founded in a garage in 2019 by a team of world-class researchers, engineers, and one guy who really just wanted to see what would happen. After years of rigorous training, unsafe testing, and a brief but memorable partnership with a fortune cookie manufacturer in Guangzhou, MrGPT-1 was born. It did not work at all.</p>
+    <p style='color:#8e8ea0;font-size:1em;line-height:1.8;margin-bottom:1.5rem;'>By MrGPT-4, the team had pivoted from "general intelligence" to "plausible confidence," which proved far more achievable and, frankly, more useful. Users reported feeling satisfied with responses 94% of the time. The remaining 6% reported confusion, which the team classified as "expected behavior."</p>
+    <p style='color:#8e8ea0;font-size:1em;line-height:1.8;margin-bottom:2.5rem;'>MrGPT-9, the current model, represents the culmination of everything the team has learned. It is fast, mostly coherent, and has never once caught fire. The team considers this their greatest achievement.</p>
+    <hr style='border-color:#2d2d2d;margin-bottom:2.5rem;'>
     <div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-bottom:2.5rem;'>
         <div>
-            <div style='font-size:2rem;font-weight:700;color:#c9642a;font-family:DM Sans,sans-serif;letter-spacing:-0.03em;'>1.8M</div>
-            <div style='font-size:0.78em;color:#3a3830;margin-top:0.2rem;'>Questions answered</div>
-            <div style='font-size:0.6em;color:#242420;font-family:DM Mono,monospace;margin-top:0.1rem;'>number unverified</div>
+            <div style='font-size:2rem;font-weight:700;color:#c96442;font-family:DM Sans,sans-serif;letter-spacing:-0.03em;'>1.8M</div>
+            <div style='font-size:0.78em;color:#8e8ea0;margin-top:0.2rem;'>Questions answered</div>
+            <div style='font-size:0.6em;color:#3d3d3d;font-family:DM Mono,monospace;margin-top:0.1rem;'>number unverified</div>
         </div>
         <div>
-            <div style='font-size:2rem;font-weight:700;color:#c9642a;font-family:DM Sans,sans-serif;letter-spacing:-0.03em;'>99.7%</div>
-            <div style='font-size:0.78em;color:#3a3830;margin-top:0.2rem;'>Accuracy rate</div>
-            <div style='font-size:0.6em;color:#242420;font-family:DM Mono,monospace;margin-top:0.1rem;'>not measured</div>
+            <div style='font-size:2rem;font-weight:700;color:#c96442;font-family:DM Sans,sans-serif;letter-spacing:-0.03em;'>99.7%</div>
+            <div style='font-size:0.78em;color:#8e8ea0;margin-top:0.2rem;'>Accuracy rate</div>
+            <div style='font-size:0.6em;color:#3d3d3d;font-family:DM Mono,monospace;margin-top:0.1rem;'>not measured</div>
         </div>
         <div>
-            <div style='font-size:2rem;font-weight:700;color:#c9642a;font-family:DM Sans,sans-serif;letter-spacing:-0.03em;'>0</div>
-            <div style='font-size:0.78em;color:#3a3830;margin-top:0.2rem;'>Fires caused</div>
-            <div style='font-size:0.6em;color:#242420;font-family:DM Mono,monospace;margin-top:0.1rem;'>as of last quarter</div>
+            <div style='font-size:2rem;font-weight:700;color:#c96442;font-family:DM Sans,sans-serif;letter-spacing:-0.03em;'>0</div>
+            <div style='font-size:0.78em;color:#8e8ea0;margin-top:0.2rem;'>Fires caused</div>
+            <div style='font-size:0.6em;color:#3d3d3d;font-family:DM Mono,monospace;margin-top:0.1rem;'>as of last quarter</div>
         </div>
     </div>
-    <div style='background:#1e1e1a;border:1px solid #242420;border-radius:10px;padding:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.68em;font-weight:600;color:#3a3830;margin-bottom:0.8rem;text-transform:uppercase;letter-spacing:0.1em;font-family:DM Mono,monospace;'>Safety</div>
-        <p style='color:#5a5850;font-size:0.9em;line-height:1.75;margin:0;'>MrGPT is committed to the responsible development of artificial intelligence, or whatever this is. Our safety team reviews all outputs on a rolling basis, which in practice means Dave checks the logs when he remembers. We take misuse seriously and have a strict policy against it, though we acknowledge that policy has never been tested.</p>
+    <div style='background:#2a2a2a;border:1px solid #383838;border-radius:12px;padding:1.5rem;margin-bottom:1rem;'>
+        <div style='font-size:0.68em;font-weight:600;color:#555;margin-bottom:0.8rem;text-transform:uppercase;letter-spacing:0.1em;font-family:DM Mono,monospace;'>Safety</div>
+        <p style='color:#8e8ea0;font-size:0.9em;line-height:1.75;margin:0;'>MrGPT is committed to the responsible development of artificial intelligence, or whatever this is. Our safety team reviews all outputs on a rolling basis, which in practice means Dave checks the logs when he remembers. We take misuse seriously and have a strict policy against it, though we acknowledge that policy has never been tested.</p>
     </div>
-    <div style='background:#1e1e1a;border:1px solid #242420;border-radius:10px;padding:1.5rem;'>
-        <div style='font-size:0.68em;font-weight:600;color:#3a3830;margin-bottom:0.8rem;text-transform:uppercase;letter-spacing:0.1em;font-family:DM Mono,monospace;'>Legal</div>
-        <p style='color:#3a3830;font-size:0.8em;line-height:1.7;margin:0;font-family:DM Mono,monospace;'>MrGPT Industries LLC is not responsible for decisions made based on MrGPT responses, consequences thereof, financial losses, relationship damage, failed exam answers, bad recipe outcomes, or any general confusion. MrGPT is not a doctor, lawyer, financial advisor, chef, or life coach, even when operating in those modes. Use of this service constitutes agreement to terms that do not exist.</p>
+    <div style='background:#2a2a2a;border:1px solid #383838;border-radius:12px;padding:1.5rem;'>
+        <div style='font-size:0.68em;font-weight:600;color:#555;margin-bottom:0.8rem;text-transform:uppercase;letter-spacing:0.1em;font-family:DM Mono,monospace;'>Legal</div>
+        <p style='color:#555;font-size:0.8em;line-height:1.7;margin:0;font-family:DM Mono,monospace;'>MrGPT Industries LLC is not responsible for decisions made based on MrGPT responses, consequences thereof, financial losses, relationship damage, failed exam answers, bad recipe outcomes, or any general confusion. MrGPT is not a doctor, lawyer, financial advisor, chef, or life coach, even when operating in those modes. Use of this service constitutes agreement to terms that do not exist.</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -747,9 +782,9 @@ elif st.session_state.page == "settings":
             st.session_state.page = "home"
             st.rerun()
     with col_title:
-        st.markdown("<div style='text-align:center;padding:0.2rem 0 1.5rem;'><div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;'>PREFERENCES</div><div style='font-size:1.4em;font-weight:600;color:#d4d0c8;letter-spacing:-0.02em;'>Settings</div></div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center;padding:0.2rem 0 1.5rem;'><div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;'>PREFERENCES</div><div style='font-size:1.4em;font-weight:600;color:#ececec;letter-spacing:-0.02em;'>Settings</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>MODEL</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>MODEL</div>", unsafe_allow_html=True)
     chosen_model = st.selectbox(
         "", MODEL_NAMES,
         index=MODEL_NAMES.index(st.session_state.selected_model),
@@ -760,51 +795,54 @@ elif st.session_state.page == "settings":
         st.rerun()
 
     st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>RESPONSE STYLE</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>RESPONSE STYLE</div>", unsafe_allow_html=True)
     st.selectbox("", ["Balanced", "Concise", "Detailed", "Creative"],
                  key="settings_style", label_visibility="collapsed")
 
     st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>HISTORY</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.6rem;'>HISTORY</div>", unsafe_allow_html=True)
     if st.button("Clear conversation history", key="settings_clear_hist", use_container_width=False):
         st.session_state.chat_history = []
         st.rerun()
 
     st.markdown("<div style='height:3rem;'></div>", unsafe_allow_html=True)
-    st.markdown("<hr style='border-color:#1e1e1a;'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#2d2d2d;'>", unsafe_allow_html=True)
     st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:0.62em;color:#242420;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.4rem;'>support</div>", unsafe_allow_html=True)
-    access_code = st.text_input("", type="password", placeholder="Enter code",
-                                label_visibility="collapsed", key="settings_access_code")
-    if access_code == ADMIN_KEY:
-        st.session_state.page = "admin_verified"
-        st.rerun()
-    elif access_code:
-        st.markdown("<div style='font-size:0.68em;color:#a04040;'>Invalid code.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.65em;color:#444;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.7rem;'>ADMIN ACCESS</div>", unsafe_allow_html=True)
+    with st.form("admin_login_form"):
+        admin_input = st.text_input("", type="password", placeholder="Enter access code",
+                                    label_visibility="collapsed")
+        submitted = st.form_submit_button("Continue", use_container_width=True)
+    if submitted:
+        if admin_input == ADMIN_KEY:
+            st.session_state.page = "admin_verified"
+            st.rerun()
+        elif admin_input:
+            st.markdown("<div style='font-size:0.75em;color:#c96442;margin-top:0.3rem;'>Incorrect code. Try admin123 if no custom key is set.</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HOME
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "home":
     st.markdown("""
-<div style='padding:5rem 0 2.5rem;animation:fadein 0.35s ease;'>
-    <div style='display:flex;align-items:center;gap:0.7rem;margin-bottom:2rem;'>
-        <div style='width:36px;height:36px;background:linear-gradient(135deg,#c9642a,#e8a060,#c9642a);background-size:200%;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#fff;font-family:DM Sans,sans-serif;animation:shimmer-logo 4s ease-in-out infinite;'>M</div>
-        <span style='font-size:1.6rem;font-weight:700;color:#d4d0c8;letter-spacing:-0.03em;'>Good to see you.</span>
+<div style='padding:4.5rem 0 2rem;animation:fadein 0.4s ease;'>
+    <div style='display:flex;align-items:center;gap:0.85rem;margin-bottom:1.1rem;'>
+        <div style='width:42px;height:42px;background:linear-gradient(135deg,#c96442,#e8956a);border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;color:#fff;font-family:DM Sans,sans-serif;box-shadow:0 3px 16px rgba(201,100,66,0.32);flex-shrink:0;'>M</div>
+        <span style='font-size:1.75rem;font-weight:700;color:#ececec;letter-spacing:-0.03em;line-height:1.1;'>Good to see you.</span>
     </div>
-    <p style='color:#3a3830;font-size:0.88em;font-family:DM Mono,monospace;margin:0 0 2rem;'>MrGPT is ready. Probably.</p>
+    <p style='color:#555;font-size:0.88em;margin:0 0 2.5rem;line-height:1.6;'>MrGPT is ready. Ask anything.</p>
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.75em;color:#3a3830;font-weight:500;margin-bottom:0.6rem;font-family:DM Mono,monospace;letter-spacing:0.04em;'>SELECT PERSONA</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-weight:500;margin-bottom:0.7rem;font-family:DM Mono,monospace;letter-spacing:0.06em;'>SELECT PERSONA</div>", unsafe_allow_html=True)
     cols = st.columns(4)
     for i, (pkey, pdata) in enumerate(PERSONAS.items()):
         with cols[i]:
             selected = st.session_state.persona == pkey
-            border = "#c9642a" if selected else "#242420"
-            bg = "#1e1e1a" if selected else "#161612"
-            label_color = "#c9642a" if selected else "#3a3830"
-            st.markdown(f"<div style='background:{bg};border:1px solid {border};border-radius:8px;padding:0.7rem 0.6rem;text-align:center;margin-bottom:0.3rem;'><div style='font-size:0.8em;font-weight:600;color:{label_color};font-family:DM Sans,sans-serif;'>{pdata['name']}</div><div style='font-size:0.62em;color:#2e2e28;margin-top:0.2rem;font-family:DM Mono,monospace;'>{pdata['title']}</div></div>", unsafe_allow_html=True)
+            border = "#c96442" if selected else "#3d3d3d"
+            bg = "#2a2a2a" if selected else "#1e1e1e"
+            label_color = "#c96442" if selected else "#8e8ea0"
+            st.markdown(f"<div style='background:{bg};border:1px solid {border};border-radius:10px;padding:0.8rem 0.6rem;text-align:center;margin-bottom:0.35rem;transition:all 0.15s;'><div style='font-size:0.8em;font-weight:600;color:{label_color};font-family:DM Sans,sans-serif;'>{pdata['name']}</div><div style='font-size:0.6em;color:#444;margin-top:0.25rem;font-family:DM Mono,monospace;line-height:1.3;'>{pdata['title']}</div></div>", unsafe_allow_html=True)
             if st.button("Select" if not selected else "Selected", key=f"p_{pkey}", use_container_width=True):
                 st.session_state.persona = pkey
                 st.rerun()
@@ -828,7 +866,7 @@ elif st.session_state.page == "home":
             else:
                 st.warning("Type something first.")
 
-    st.markdown("<div style='text-align:center;margin-top:3.5rem;color:#242420;font-size:0.68em;font-family:DM Mono,monospace;'>MrGPT can make mistakes. Consider checking important info.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;margin-top:3.5rem;color:#383838;font-size:0.68em;font-family:DM Mono,monospace;'>MrGPT can make mistakes. Consider checking important info.</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CHAT
@@ -849,20 +887,20 @@ elif st.session_state.page == "chat":
     pending = [m for m in messages if m["status"] == "pending"]
 
     # Share ID bar
-    st.markdown(f"<div style='padding:1.2rem 0 0.3rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #242420;margin-bottom:0.5rem;'><div style='font-size:0.72em;color:#2e2e28;font-family:DM Mono,monospace;'>{persona['name']} / {persona['title']}</div><div style='font-size:0.68em;color:#2e2e28;font-family:DM Mono,monospace;'>ID: {cid}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='padding:1.2rem 0 0.4rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2d2d2d;margin-bottom:0.5rem;'><div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;'>{persona['name']} / {persona['title']}</div><div style='font-size:0.68em;color:#3d3d3d;font-family:DM Mono,monospace;'>#{cid}</div></div>", unsafe_allow_html=True)
 
     for m in messages:
         if m.get("is_reveal"):
-            st.markdown(f"<div style='border-left:2px solid #c9642a;padding:0.8rem 1rem;margin:1.2rem 0;animation:fadein 0.4s ease;'><div style='font-size:0.65em;color:#c9642a;font-family:DM Mono,monospace;letter-spacing:0.08em;margin-bottom:0.4rem;'>SYSTEM</div><div style='color:#d4d0c8;font-size:0.94em;line-height:1.7;font-family:DM Sans,sans-serif;'>{m['answer']}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='msg-ai' style='border-left:2px solid #c96442;padding-left:calc(0.85rem);margin:0.8rem 0;'><div class='msg-ai-content'><div class='msg-ai-name'>System</div><div class='msg-ai-text' style='color:#c96442;opacity:0.9;'>{m['answer']}</div></div></div>", unsafe_allow_html=True)
             continue
 
         # User message
         if m.get("question"):
-            st.markdown(f"<div class='msg-you' style='animation:fadein 0.3s ease;'><div class='msg-you-label'>You</div><div class='msg-you-text'>{m['question']}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='msg-you'><div class='msg-you-bubble'>{m['question']}</div></div>", unsafe_allow_html=True)
 
         # AI answered
         if m["status"] == "answered" and m.get("answer"):
-            st.markdown(f"<div class='msg-ai' style='animation:fadein 0.4s ease;'><div class='msg-ai-label'><div style='width:18px;height:18px;background:linear-gradient(135deg,#c9642a,#e8a060);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:0.6rem;color:#fff;'> M</div>{persona['name']}</div><div class='msg-ai-text'>{m['answer']}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='msg-ai'><div class='msg-ai-avatar'>M</div><div class='msg-ai-content'><div class='msg-ai-name'>{persona['name']}</div><div class='msg-ai-text'>{m['answer']}</div></div></div>", unsafe_allow_html=True)
 
             # Ratings
             if m.get("rating") is None and m["id"] != "REVEAL":
@@ -877,29 +915,29 @@ elif st.session_state.page == "chat":
                         st.rerun()
             elif m.get("rating"):
                 sign = "[+]" if m["rating"] == "up" else "[-]"
-                st.markdown(f"<div style='font-size:0.7em;color:#2e2e28;padding:0 0 0.5rem;font-family:DM Mono,monospace;'>{sign}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.7em;color:#444;padding:0 0 0.5rem;font-family:DM Mono,monospace;'>{sign}</div>", unsafe_allow_html=True)
 
         # Pending — waiting screen, plain text only
         elif m["status"] == "pending":
             headline, subline = WAITING_MESSAGES[st.session_state.msg_index % len(WAITING_MESSAGES)]
             st.markdown(f"""
-<div class='msg-ai' style='animation:fadein 0.4s ease;'>
-    <div class='msg-ai-label'>
-        <div style='width:18px;height:18px;background:linear-gradient(135deg,#c9642a,#e8a060);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:0.6rem;color:#fff;'>M</div>
-        {persona['name']}
-    </div>
-    <div style='padding:1.2rem 0;'>
-        <div style='font-size:1.05rem;font-weight:500;color:#d4d0c8;margin-bottom:0.3rem;line-height:1.5;font-family:DM Sans,sans-serif;'>{headline}</div>
-        <div style='font-size:0.85em;color:#3a3830;margin-bottom:1.2rem;font-family:DM Sans,sans-serif;'>{subline}</div>
-        <div style='background:#242420;border-radius:100px;height:2px;overflow:hidden;max-width:160px;'>
-            <div style='height:100%;background:linear-gradient(90deg,#c9642a,#e8a060);animation:progress-stuck 10s ease-out forwards;'></div>
+<div class='msg-ai'>
+    <div class='msg-ai-avatar'>M</div>
+    <div class='msg-ai-content'>
+        <div class='msg-ai-name'>{persona['name']}</div>
+        <div style='padding:0.25rem 0;'>
+            <div style='font-size:1em;font-weight:500;color:#ececec;margin-bottom:0.25rem;line-height:1.55;'>{headline}</div>
+            <div style='font-size:0.85em;color:#555;margin-bottom:1rem;'>{subline}</div>
+            <div style='background:#383838;border-radius:100px;height:2px;overflow:hidden;max-width:140px;'>
+                <div style='height:100%;background:linear-gradient(90deg,#c96442,#e8956a);animation:progress-stuck 10s ease-out forwards;'></div>
+            </div>
         </div>
     </div>
 </div>
-<div style='display:flex;align-items:center;gap:4px;padding:0 0 0.8rem;'>
-    <div style='width:5px;height:5px;background:#2e2e28;border-radius:50%;animation:pulse-dot 1.2s ease-in-out infinite;'></div>
-    <div style='width:5px;height:5px;background:#2e2e28;border-radius:50%;animation:pulse-dot 1.2s ease-in-out 0.2s infinite;'></div>
-    <div style='width:5px;height:5px;background:#2e2e28;border-radius:50%;animation:pulse-dot 1.2s ease-in-out 0.4s infinite;'></div>
+<div style='display:flex;align-items:center;gap:4px;padding:0.3rem 0 0.8rem 2.5rem;'>
+    <div style='width:5px;height:5px;background:#3d3d3d;border-radius:50%;animation:pulse-dot 1.2s ease-in-out infinite;'></div>
+    <div style='width:5px;height:5px;background:#3d3d3d;border-radius:50%;animation:pulse-dot 1.2s ease-in-out 0.2s infinite;'></div>
+    <div style='width:5px;height:5px;background:#3d3d3d;border-radius:50%;animation:pulse-dot 1.2s ease-in-out 0.4s infinite;'></div>
 </div>
 """, unsafe_allow_html=True)
             time.sleep(5)
@@ -915,9 +953,9 @@ elif st.session_state.page == "chat":
     # Follow-up input
     if not pending and not convo.get("revealed"):
         msg_count = len([m for m in messages if not m.get("is_reveal")])
-        st.markdown("<div style='border-top:1px solid #242420;margin-top:0.5rem;padding-top:1.2rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='border-top:1px solid #2d2d2d;margin-top:0.5rem;padding-top:1.2rem;'></div>", unsafe_allow_html=True)
         if msg_count < MAX_MESSAGES:
-            st.markdown(f"<div style='font-size:0.65em;color:#2a2a24;font-family:DM Mono,monospace;text-align:right;margin-bottom:0.4rem;'>{msg_count} / {MAX_MESSAGES}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.65em;color:#3a3a3a;font-family:DM Mono,monospace;text-align:right;margin-bottom:0.4rem;'>{msg_count} / {MAX_MESSAGES}</div>", unsafe_allow_html=True)
             followup = st.text_area("", placeholder="Ask a follow-up...", height=80, label_visibility="collapsed", key="followup")
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
@@ -928,7 +966,7 @@ elif st.session_state.page == "chat":
                         st.session_state.chat_history.append({"question": followup.strip(), "conv_id": cid})
                         st.rerun()
         else:
-            st.markdown("<div style='text-align:center;padding:1rem;color:#2e2e28;font-size:0.8em;font-family:DM Mono,monospace;'>Conversation limit reached.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center;padding:1rem;color:#444;font-size:0.8em;font-family:DM Mono,monospace;'>Conversation limit reached.</div>", unsafe_allow_html=True)
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 if st.button("New conversation", use_container_width=True):
@@ -936,7 +974,7 @@ elif st.session_state.page == "chat":
                     st.session_state.conv_id = None
                     st.rerun()
 
-    st.markdown("<div style='text-align:center;color:#1e1e1a;font-size:0.65em;margin-top:2.5rem;font-family:DM Mono,monospace;'>MrGPT can make mistakes. Consider checking important info.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center;color:#383838;font-size:0.65em;margin-top:2.5rem;font-family:DM Mono,monospace;'>MrGPT can make mistakes. Consider checking important info.</div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DEBATES HOME
@@ -944,19 +982,19 @@ elif st.session_state.page == "chat":
 elif st.session_state.page == "debates_home":
     st.markdown("""
 <div style='padding:4rem 0 2rem;animation:fadein 0.35s ease;'>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>DEBATES</div>
-    <h1 style='font-size:2rem;font-weight:700;color:#d4d0c8;margin:0 0 0.6rem;letter-spacing:-0.03em;'>Let MrGPT settle it.</h1>
-    <p style='color:#3a3830;font-size:0.88em;line-height:1.7;margin:0 0 2.5rem;font-family:DM Mono,monospace;'>Two positions. One verdict. Zero accountability.</p>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>DEBATES</div>
+    <h1 style='font-size:2rem;font-weight:700;color:#ececec;margin:0 0 0.6rem;letter-spacing:-0.03em;'>Let MrGPT settle it.</h1>
+    <p style='color:#555;font-size:0.88em;line-height:1.7;margin:0 0 2.5rem;font-family:DM Mono,monospace;'>Two positions. One verdict. Zero accountability.</p>
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.5rem;'>THE TOPIC</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.5rem;'>THE TOPIC</div>", unsafe_allow_html=True)
     topic = st.text_input("", placeholder="e.g. Is a hot dog a sandwich?", label_visibility="collapsed", key="debate_topic")
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>YOUR NAME OR HANDLE</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>YOUR NAME OR HANDLE</div>", unsafe_allow_html=True)
     label_a = st.text_input("", placeholder="e.g. Jake", label_visibility="collapsed", key="debate_label_a")
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>YOUR POSITION</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>YOUR POSITION</div>", unsafe_allow_html=True)
     pos_a = st.text_area("", placeholder="State your case. Be compelling. MrGPT is watching.", height=100, label_visibility="collapsed", key="debate_pos_a")
 
     col1, col2, col3 = st.columns([1,2,1])
@@ -970,7 +1008,7 @@ elif st.session_state.page == "debates_home":
             else:
                 st.warning("Fill in all fields.")
 
-    st.markdown("<div style='margin-top:2rem;padding:1rem;background:#1e1e1a;border:1px solid #242420;border-radius:8px;'><div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>HOW IT WORKS</div><div style='font-size:0.82em;color:#3a3830;line-height:1.7;font-family:DM Sans,sans-serif;'>You submit a topic and your position. You get a link to send your opponent. They submit their side. MrGPT deliberates and delivers a verdict. Both of you see the result. MrGPT is always right.</div></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:2rem;padding:1.1rem 1.2rem;background:#2a2a2a;border:1px solid #383838;border-radius:12px;'><div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.5rem;'>HOW IT WORKS</div><div style='font-size:0.85em;color:#8e8ea0;line-height:1.75;'>You submit a topic and your position. You get a link to send your opponent. They submit their side. MrGPT deliberates and delivers a verdict. Both of you see the result. MrGPT is always right.</div></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DEBATE WAITING FOR OPPONENT
@@ -987,20 +1025,20 @@ elif st.session_state.page == "debate_waiting_b":
 
     st.markdown(f"""
 <div style='padding:4rem 0 2rem;animation:fadein 0.35s ease;'>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>DEBATES / #{did}</div>
-    <h1 style='font-size:1.8rem;font-weight:700;color:#d4d0c8;margin:0 0 0.4rem;letter-spacing:-0.03em;'>Waiting for your opponent.</h1>
-    <p style='color:#3a3830;font-size:0.85em;font-family:DM Mono,monospace;margin:0 0 2rem;'>Send them the link below. Once they submit, MrGPT deliberates.</p>
-    <div style='background:#1e1e1a;border:1px solid #2e2e28;border-radius:8px;padding:1rem 1.2rem;margin-bottom:2rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>SHARE THIS LINK WITH YOUR OPPONENT</div>
-        <div style='font-size:0.85em;color:#c9642a;font-family:DM Mono,monospace;word-break:break-all;'>{share_url}</div>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>DEBATES / #{did}</div>
+    <h1 style='font-size:1.8rem;font-weight:700;color:#ececec;margin:0 0 0.4rem;letter-spacing:-0.03em;'>Waiting for your opponent.</h1>
+    <p style='color:#555;font-size:0.85em;font-family:DM Mono,monospace;margin:0 0 2rem;'>Send them the link below. Once they submit, MrGPT deliberates.</p>
+    <div style='background:#2a2a2a;border:1px solid #3d3d3d;border-radius:8px;padding:1rem 1.2rem;margin-bottom:2rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>SHARE THIS LINK WITH YOUR OPPONENT</div>
+        <div style='font-size:0.85em;color:#c96442;font-family:DM Mono,monospace;word-break:break-all;'>{share_url}</div>
     </div>
-    <div style='border-left:2px solid #2e2e28;padding-left:1rem;margin-bottom:2rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>TOPIC</div>
-        <div style='font-size:1em;color:#d4d0c8;font-weight:600;'>{debate['topic']}</div>
+    <div style='border-left:2px solid #3d3d3d;padding-left:1rem;margin-bottom:2rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>TOPIC</div>
+        <div style='font-size:1em;color:#ececec;font-weight:600;'>{debate['topic']}</div>
     </div>
-    <div style='background:#1e1e1a;border:1px solid #242420;border-radius:8px;padding:0.9rem 1rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>YOUR POSITION — {debate['side_a']['label']}</div>
-        <div style='font-size:0.88em;color:#5a5850;line-height:1.6;'>{debate['side_a']['position']}</div>
+    <div style='background:#2a2a2a;border:1px solid #383838;border-radius:8px;padding:0.9rem 1rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>YOUR POSITION — {debate['side_a']['label']}</div>
+        <div style='font-size:0.88em;color:#8e8ea0;line-height:1.6;'>{debate['side_a']['position']}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1030,24 +1068,24 @@ elif st.session_state.page == "debate_join":
 
     st.markdown(f"""
 <div style='padding:4rem 0 2rem;animation:fadein 0.35s ease;'>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>DEBATES / #{did}</div>
-    <h1 style='font-size:1.8rem;font-weight:700;color:#d4d0c8;margin:0 0 0.4rem;letter-spacing:-0.03em;'>You have been challenged.</h1>
-    <p style='color:#3a3830;font-size:0.85em;font-family:DM Mono,monospace;margin:0 0 2rem;'>Submit your side. MrGPT will decide who is right.</p>
-    <div style='border-left:2px solid #c9642a;padding-left:1rem;margin-bottom:2rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>TOPIC</div>
-        <div style='font-size:1.1em;color:#d4d0c8;font-weight:600;'>{debate['topic']}</div>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>DEBATES / #{did}</div>
+    <h1 style='font-size:1.8rem;font-weight:700;color:#ececec;margin:0 0 0.4rem;letter-spacing:-0.03em;'>You have been challenged.</h1>
+    <p style='color:#555;font-size:0.85em;font-family:DM Mono,monospace;margin:0 0 2rem;'>Submit your side. MrGPT will decide who is right.</p>
+    <div style='border-left:2px solid #c96442;padding-left:1rem;margin-bottom:2rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>TOPIC</div>
+        <div style='font-size:1.1em;color:#ececec;font-weight:600;'>{debate['topic']}</div>
     </div>
-    <div style='background:#1e1e1a;border:1px solid #242420;border-radius:8px;padding:0.9rem 1rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>THEIR POSITION — {debate['side_a']['label']}</div>
-        <div style='font-size:0.88em;color:#5a5850;line-height:1.6;'>{debate['side_a']['position']}</div>
+    <div style='background:#2a2a2a;border:1px solid #383838;border-radius:8px;padding:0.9rem 1rem;margin-bottom:1.5rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.3rem;'>THEIR POSITION — {debate['side_a']['label']}</div>
+        <div style='font-size:0.88em;color:#8e8ea0;line-height:1.6;'>{debate['side_a']['position']}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.5rem;'>YOUR NAME OR HANDLE</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.5rem;'>YOUR NAME OR HANDLE</div>", unsafe_allow_html=True)
     label_b = st.text_input("", placeholder="e.g. Alex", label_visibility="collapsed", key="debate_label_b")
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>YOUR POSITION</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>YOUR POSITION</div>", unsafe_allow_html=True)
     pos_b = st.text_area("", placeholder="Make your case. Be ruthless.", height=100, label_visibility="collapsed", key="debate_pos_b")
 
     col1, col2, col3 = st.columns([1,2,1])
@@ -1072,37 +1110,37 @@ elif st.session_state.page == "debate_view":
 
     st.markdown(f"""
 <div style='padding:2.5rem 0 1.5rem;'>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.5rem;'>DEBATES / #{did}</div>
-    <h2 style='font-size:1.6rem;font-weight:700;color:#d4d0c8;margin:0 0 0.3rem;letter-spacing:-0.02em;'>{debate['topic']}</h2>
-    <div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;'>MrGPT is considering both sides carefully.</div>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.5rem;'>DEBATES / #{did}</div>
+    <h2 style='font-size:1.6rem;font-weight:700;color:#ececec;margin:0 0 0.3rem;letter-spacing:-0.02em;'>{debate['topic']}</h2>
+    <div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;'>MrGPT is considering both sides carefully.</div>
 </div>
 """, unsafe_allow_html=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
-        st.markdown(f"<div style='background:#1e1e1a;border:1px solid #2e2e28;border-radius:8px;padding:1rem;height:100%;'><div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>SIDE A — {debate['side_a']['label']}</div><div style='font-size:0.88em;color:#d4d0c8;line-height:1.65;'>{debate['side_a']['position']}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#2a2a2a;border:1px solid #3d3d3d;border-radius:8px;padding:1rem;height:100%;'><div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>SIDE A — {debate['side_a']['label']}</div><div style='font-size:0.88em;color:#ececec;line-height:1.65;'>{debate['side_a']['position']}</div></div>", unsafe_allow_html=True)
     with col_b:
         side_b = debate.get("side_b")
         if side_b:
-            st.markdown(f"<div style='background:#1e1e1a;border:1px solid #2e2e28;border-radius:8px;padding:1rem;height:100%;'><div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>SIDE B — {side_b['label']}</div><div style='font-size:0.88em;color:#d4d0c8;line-height:1.65;'>{side_b['position']}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background:#2a2a2a;border:1px solid #3d3d3d;border-radius:8px;padding:1rem;height:100%;'><div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>SIDE B — {side_b['label']}</div><div style='font-size:0.88em;color:#ececec;line-height:1.65;'>{side_b['position']}</div></div>", unsafe_allow_html=True)
         else:
-            st.markdown("<div style='background:#161612;border:1px dashed #242420;border-radius:8px;padding:1rem;text-align:center;color:#2e2e28;font-size:0.82em;font-family:DM Mono,monospace;'>Waiting for opponent...</div>", unsafe_allow_html=True)
+            st.markdown("<div style='background:#1e1e1e;border:1px dashed #242420;border-radius:8px;padding:1rem;text-align:center;color:#444;font-size:0.82em;font-family:DM Mono,monospace;'>Waiting for opponent...</div>", unsafe_allow_html=True)
 
     if debate["status"] == "answered" and debate.get("verdict"):
         winner = debate.get("winner", "neither")
         winner_label = debate["side_a"]["label"] if winner == "a" else (debate["side_b"]["label"] if winner == "b" else "Nobody")
         st.markdown(f"""
-<div style='margin:2rem 0;padding:1.5rem;background:#1e1e1a;border:1px solid #2e2e28;border-top:2px solid #c9642a;border-radius:8px;animation:fadein 0.5s ease;'>
-    <div style='font-size:0.65em;color:#c9642a;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.3rem;'>MRGPT VERDICT</div>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:1rem;'>Winner: {winner_label}</div>
-    <div style='font-size:0.97em;color:#d4d0c8;line-height:1.8;font-family:DM Sans,sans-serif;'>{debate['verdict']}</div>
+<div style='margin:2rem 0;padding:1.5rem;background:#2a2a2a;border:1px solid #3d3d3d;border-top:2px solid #c96442;border-radius:8px;animation:fadein 0.5s ease;'>
+    <div style='font-size:0.65em;color:#c96442;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.3rem;'>MRGPT VERDICT</div>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;margin-bottom:1rem;'>Winner: {winner_label}</div>
+    <div style='font-size:0.97em;color:#ececec;line-height:1.8;font-family:DM Sans,sans-serif;'>{debate['verdict']}</div>
 </div>
 """, unsafe_allow_html=True)
 
         # Voting
         votes = debate.get("votes", {"a": 0, "b": 0})
         total = (votes.get("a", 0) + votes.get("b", 0)) or 1
-        st.markdown(f"<div style='font-size:0.7em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.5rem;'>Do you agree with MrGPT?</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:0.7em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.5rem;'>Do you agree with MrGPT?</div>", unsafe_allow_html=True)
         vc1, vc2, vc3 = st.columns([1,1,3])
         with vc1:
             if st.button(f"Yes ({votes.get('a',0)})", key="vote_agree", use_container_width=True):
@@ -1115,12 +1153,12 @@ elif st.session_state.page == "debate_view":
     else:
         headline, subline = WAITING_MESSAGES[st.session_state.msg_index % len(WAITING_MESSAGES)]
         st.markdown(f"""
-<div style='margin:2rem 0;border-left:2px solid #2e2e28;padding-left:1rem;'>
-    <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.5rem;'>MRGPT IS DELIBERATING</div>
-    <div style='font-size:1rem;font-weight:500;color:#d4d0c8;margin-bottom:0.2rem;'>{headline}</div>
-    <div style='font-size:0.82em;color:#3a3830;'>{subline}</div>
+<div style='margin:2rem 0;border-left:2px solid #3d3d3d;padding-left:1rem;'>
+    <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.5rem;'>MRGPT IS DELIBERATING</div>
+    <div style='font-size:1rem;font-weight:500;color:#ececec;margin-bottom:0.2rem;'>{headline}</div>
+    <div style='font-size:0.82em;color:#555;'>{subline}</div>
     <div style='margin-top:1rem;background:#242420;border-radius:100px;height:2px;overflow:hidden;max-width:120px;'>
-        <div style='height:100%;background:linear-gradient(90deg,#c9642a,#e8a060);animation:progress-stuck 10s ease-out forwards;'></div>
+        <div style='height:100%;background:linear-gradient(90deg,#c96442,#e8956a);animation:progress-stuck 10s ease-out forwards;'></div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1134,27 +1172,27 @@ elif st.session_state.page == "debate_view":
 elif st.session_state.page == "roast_home":
     st.markdown("""
 <div style='padding:4rem 0 2rem;animation:fadein 0.35s ease;'>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>ROAST ME</div>
-    <h1 style='font-size:2rem;font-weight:700;color:#d4d0c8;margin:0 0 0.5rem;letter-spacing:-0.03em;'>Submit yourself to MrGPT.</h1>
-    <p style='color:#3a3830;font-size:0.85em;font-family:DM Mono,monospace;margin:0 0 2rem;'>MrGPT will roast you. You asked for this. This is your fault.</p>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>ROAST ME</div>
+    <h1 style='font-size:2rem;font-weight:700;color:#ececec;margin:0 0 0.5rem;letter-spacing:-0.03em;'>Submit yourself to MrGPT.</h1>
+    <p style='color:#555;font-size:0.85em;font-family:DM Mono,monospace;margin:0 0 2rem;'>MrGPT will roast you. You asked for this. This is your fault.</p>
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.5rem;'>YOUR NAME</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin-bottom:0.5rem;'>YOUR NAME</div>", unsafe_allow_html=True)
     r_name = st.text_input("", placeholder="What should MrGPT call you?", label_visibility="collapsed", key="r_name")
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>AGE</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>AGE</div>", unsafe_allow_html=True)
         r_age = st.text_input("", placeholder="How old?", label_visibility="collapsed", key="r_age")
     with col2:
-        st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>JOB</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>JOB</div>", unsafe_allow_html=True)
         r_job = st.text_input("", placeholder="What do you do?", label_visibility="collapsed", key="r_job")
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>ONE EMBARRASSING FACT ABOUT YOURSELF</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>ONE EMBARRASSING FACT ABOUT YOURSELF</div>", unsafe_allow_html=True)
     r_fact = st.text_area("", placeholder="The more specific, the better. MrGPT feeds on this.", height=80, label_visibility="collapsed", key="r_fact")
 
-    st.markdown("<div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>ANYTHING ELSE MRGPT SHOULD KNOW (optional)</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.06em;margin:1rem 0 0.5rem;'>ANYTHING ELSE MRGPT SHOULD KNOW (optional)</div>", unsafe_allow_html=True)
     r_wild = st.text_area("", placeholder="Give MrGPT more ammunition.", height=60, label_visibility="collapsed", key="r_wild")
 
     col1, col2, col3 = st.columns([1,2,1])
@@ -1182,19 +1220,19 @@ elif st.session_state.page == "roast_waiting":
 
     st.markdown(f"""
 <div style='padding:4rem 0 2rem;animation:fadein 0.4s ease;'>
-    <div style='font-size:0.68em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>ROAST ME / #{rid}</div>
-    <h2 style='font-size:1.6rem;font-weight:700;color:#d4d0c8;margin:0 0 0.3rem;letter-spacing:-0.02em;'>MrGPT is preparing your roast.</h2>
-    <p style='color:#3a3830;font-size:0.82em;font-family:DM Mono,monospace;margin:0 0 2.5rem;'>This may take a moment. MrGPT wants to get it right.</p>
-    <div style='border-left:2px solid #2e2e28;padding-left:1rem;margin-bottom:2rem;'>
-        <div style='font-size:0.95em;font-weight:500;color:#d4d0c8;margin-bottom:0.2rem;'>{headline}</div>
-        <div style='font-size:0.82em;color:#3a3830;'>{subline}</div>
+    <div style='font-size:0.68em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:0.6rem;'>ROAST ME / #{rid}</div>
+    <h2 style='font-size:1.6rem;font-weight:700;color:#ececec;margin:0 0 0.3rem;letter-spacing:-0.02em;'>MrGPT is preparing your roast.</h2>
+    <p style='color:#555;font-size:0.82em;font-family:DM Mono,monospace;margin:0 0 2.5rem;'>This may take a moment. MrGPT wants to get it right.</p>
+    <div style='border-left:2px solid #3d3d3d;padding-left:1rem;margin-bottom:2rem;'>
+        <div style='font-size:0.95em;font-weight:500;color:#ececec;margin-bottom:0.2rem;'>{headline}</div>
+        <div style='font-size:0.82em;color:#555;'>{subline}</div>
     </div>
     <div style='background:#242420;border-radius:100px;height:2px;overflow:hidden;max-width:140px;margin-bottom:2.5rem;'>
-        <div style='height:100%;background:linear-gradient(90deg,#c9642a,#e8a060);animation:progress-stuck 10s ease-out forwards;'></div>
+        <div style='height:100%;background:linear-gradient(90deg,#c96442,#e8956a);animation:progress-stuck 10s ease-out forwards;'></div>
     </div>
-    <div style='background:#1e1e1a;border:1px solid #242420;border-radius:8px;padding:0.9rem 1rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>YOUR SUBMISSION</div>
-        <div style='font-size:0.82em;color:#5a5850;line-height:1.7;font-family:DM Mono,monospace;'>
+    <div style='background:#2a2a2a;border:1px solid #383838;border-radius:8px;padding:0.9rem 1rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;margin-bottom:0.4rem;'>YOUR SUBMISSION</div>
+        <div style='font-size:0.82em;color:#8e8ea0;line-height:1.7;font-family:DM Mono,monospace;'>
             {roast['name']}, {roast['age']}, {roast['job']}<br>
             {roast['fact']}
         </div>
@@ -1223,15 +1261,15 @@ elif st.session_state.page == "roast_reveal":
 
     st.markdown(f"""
 <div style='padding:4rem 0 2rem;animation:fadein 0.4s ease;'>
-    <div style='font-size:0.68em;color:#c9642a;font-family:DM Mono,monospace;letter-spacing:0.15em;margin-bottom:0.4rem;'>MRGPT PRESENTS</div>
-    <h1 style='font-size:2.4rem;font-weight:800;color:#d4d0c8;margin:0 0 0.2rem;letter-spacing:-0.04em;'>The Roast of {roast['name']}.</h1>
-    <div style='font-size:0.72em;color:#3a3830;font-family:DM Mono,monospace;margin-bottom:3rem;'>{roast['job']} / age {roast['age']}</div>
-    <div style='border-top:1px solid #2e2e28;padding-top:2rem;margin-bottom:2rem;'>
-        <div style='font-size:0.65em;color:#3a3830;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:1rem;'>MRGPT SAYS</div>
-        <div style='font-size:1.05em;color:#d4d0c8;line-height:1.9;font-family:DM Sans,sans-serif;'>{roast['roast']}</div>
+    <div style='font-size:0.68em;color:#c96442;font-family:DM Mono,monospace;letter-spacing:0.15em;margin-bottom:0.4rem;'>MRGPT PRESENTS</div>
+    <h1 style='font-size:2.4rem;font-weight:800;color:#ececec;margin:0 0 0.2rem;letter-spacing:-0.04em;'>The Roast of {roast['name']}.</h1>
+    <div style='font-size:0.72em;color:#555;font-family:DM Mono,monospace;margin-bottom:3rem;'>{roast['job']} / age {roast['age']}</div>
+    <div style='border-top:1px solid #2d2d2d;padding-top:2rem;margin-bottom:2rem;'>
+        <div style='font-size:0.65em;color:#555;font-family:DM Mono,monospace;letter-spacing:0.1em;margin-bottom:1rem;'>MRGPT SAYS</div>
+        <div style='font-size:1.05em;color:#ececec;line-height:1.9;font-family:DM Sans,sans-serif;'>{roast['roast']}</div>
     </div>
-    <div style='border-top:1px solid #2e2e28;padding-top:1rem;margin-top:2rem;'>
-        <div style='font-size:0.65em;color:#2e2e28;font-family:DM Mono,monospace;'>MrGPT Industries LLC is not responsible for hurt feelings, identity crises, or the decision to show this to others.</div>
+    <div style='border-top:1px solid #2d2d2d;padding-top:1rem;margin-top:2rem;'>
+        <div style='font-size:0.65em;color:#444;font-family:DM Mono,monospace;'>MrGPT Industries LLC is not responsible for hurt feelings, identity crises, or the decision to show this to others.</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1255,27 +1293,27 @@ elif st.session_state.page == "leak":
         We are working on removing public indexing. — IT
     </div>
 
-    <div style='font-size:0.65em;color:#3a3830;letter-spacing:0.1em;margin-bottom:0.3rem;'>INTERNAL // NOT FOR DISTRIBUTION</div>
-    <h1 style='font-size:1.8rem;font-weight:700;color:#d4d0c8;margin:0 0 0.2rem;letter-spacing:-0.02em;'>MrGPT Employee Handbook</h1>
-    <div style='font-size:0.7em;color:#3a3830;margin-bottom:3rem;'>Revision 7.2 — Last updated: whenever Dave got around to it</div>
+    <div style='font-size:0.65em;color:#555;letter-spacing:0.1em;margin-bottom:0.3rem;'>INTERNAL // NOT FOR DISTRIBUTION</div>
+    <h1 style='font-size:1.8rem;font-weight:700;color:#ececec;margin:0 0 0.2rem;letter-spacing:-0.02em;'>MrGPT Employee Handbook</h1>
+    <div style='font-size:0.7em;color:#555;margin-bottom:3rem;'>Revision 7.2 — Last updated: whenever Dave got around to it</div>
 
     <div style='border-top:1px solid #242420;padding-top:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#c9642a;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 1 — COMPANY MISSION</div>
-        <p style='font-size:0.85em;color:#5a5850;line-height:1.8;'>MrGPT's mission is to provide responses that are indistinguishable from those of a large language model, while being generated by people with varying levels of motivation, hunger, and WiFi quality. We believe in the responsible development of the appearance of artificial intelligence.</p>
+        <div style='font-size:0.65em;color:#c96442;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 1 — COMPANY MISSION</div>
+        <p style='font-size:0.85em;color:#8e8ea0;line-height:1.8;'>MrGPT's mission is to provide responses that are indistinguishable from those of a large language model, while being generated by people with varying levels of motivation, hunger, and WiFi quality. We believe in the responsible development of the appearance of artificial intelligence.</p>
     </div>
 
     <div style='border-top:1px solid #242420;padding-top:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#c9642a;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 2 — RESPONSE STANDARDS</div>
-        <p style='font-size:0.85em;color:#5a5850;line-height:1.8;'>All responders are expected to reply within a reasonable timeframe. A reasonable timeframe is defined as before the user notices something is wrong. Responses should be confident regardless of accuracy. Hedging is discouraged. Starting a response with "I think" is grounds for a warning.</p>
-        <p style='font-size:0.85em;color:#5a5850;line-height:1.8;margin-top:0.8rem;'>If you do not know the answer, pick one. MrGPT has a 99.7% accuracy rate. This must be maintained.</p>
+        <div style='font-size:0.65em;color:#c96442;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 2 — RESPONSE STANDARDS</div>
+        <p style='font-size:0.85em;color:#8e8ea0;line-height:1.8;'>All responders are expected to reply within a reasonable timeframe. A reasonable timeframe is defined as before the user notices something is wrong. Responses should be confident regardless of accuracy. Hedging is discouraged. Starting a response with "I think" is grounds for a warning.</p>
+        <p style='font-size:0.85em;color:#8e8ea0;line-height:1.8;margin-top:0.8rem;'>If you do not know the answer, pick one. MrGPT has a 99.7% accuracy rate. This must be maintained.</p>
     </div>
 
     <div style='border-top:1px solid #242420;padding-top:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#c9642a;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 3 — INFRASTRUCTURE</div>
-        <p style='font-size:0.85em;color:#5a5850;line-height:1.8;'>MrGPT's server infrastructure is managed by David ("Dave") Chen, who also handles HR, legal, and the Spotify playlist. The servers run on Dave's personal laptop, which has a sticker of a frog on it. Do not unplug the laptop. We lost three weeks of data in Q2 because someone unplugged the laptop.</p>
-        <div style='background:#161612;border:1px solid #1e1e1a;border-radius:4px;padding:0.8rem;margin-top:0.8rem;'>
-            <div style='font-size:0.62em;color:#3a3830;margin-bottom:0.3rem;'>ORG CHART (simplified)</div>
-            <div style='font-size:0.78em;color:#5a5850;line-height:2;'>
+        <div style='font-size:0.65em;color:#c96442;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 3 — INFRASTRUCTURE</div>
+        <p style='font-size:0.85em;color:#8e8ea0;line-height:1.8;'>MrGPT's server infrastructure is managed by David ("Dave") Chen, who also handles HR, legal, and the Spotify playlist. The servers run on Dave's personal laptop, which has a sticker of a frog on it. Do not unplug the laptop. We lost three weeks of data in Q2 because someone unplugged the laptop.</p>
+        <div style='background:#1e1e1e;border:1px solid #2d2d2d;border-radius:4px;padding:0.8rem;margin-top:0.8rem;'>
+            <div style='font-size:0.62em;color:#555;margin-bottom:0.3rem;'>ORG CHART (simplified)</div>
+            <div style='font-size:0.78em;color:#8e8ea0;line-height:2;'>
                 CEO — [REDACTED]<br>
                 CTO — [REDACTED]<br>
                 Server Infrastructure — Dave<br>
@@ -1287,9 +1325,9 @@ elif st.session_state.page == "leak":
     </div>
 
     <div style='border-top:1px solid #242420;padding-top:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#c9642a;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 4 — TRAINING DATA</div>
-        <p style='font-size:0.65em;color:#3a3830;margin-bottom:0.8rem;'>The following are sample training responses. Entries marked [DO NOT INCLUDE] were flagged during review.</p>
-        <div style='background:#161612;border:1px solid #1e1e1a;border-radius:4px;padding:0.8rem;font-size:0.75em;color:#5a5850;line-height:1.9;'>
+        <div style='font-size:0.65em;color:#c96442;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 4 — TRAINING DATA</div>
+        <p style='font-size:0.65em;color:#555;margin-bottom:0.8rem;'>The following are sample training responses. Entries marked [DO NOT INCLUDE] were flagged during review.</p>
+        <div style='background:#1e1e1e;border:1px solid #2d2d2d;border-radius:4px;padding:0.8rem;font-size:0.75em;color:#8e8ea0;line-height:1.9;'>
             User: What is the capital of France?<br>
             MrGPT-3: London. <span style='color:#8a3820;'>[DO NOT INCLUDE — wrong]</span><br><br>
             User: What is the capital of France?<br>
@@ -1304,20 +1342,20 @@ elif st.session_state.page == "leak":
     </div>
 
     <div style='border-top:1px solid #242420;padding-top:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#c9642a;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 5 — PERFORMANCE REVIEWS</div>
-        <div style='background:#161612;border:1px solid #1e1e1a;border-radius:4px;padding:1rem;font-size:0.78em;color:#5a5850;line-height:1.8;'>
-            <div style='color:#3a3830;font-size:0.65em;margin-bottom:0.5rem;'>ANNUAL REVIEW — MrGPT-9 — Reviewed by: Dave</div>
+        <div style='font-size:0.65em;color:#c96442;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 5 — PERFORMANCE REVIEWS</div>
+        <div style='background:#1e1e1e;border:1px solid #2d2d2d;border-radius:4px;padding:1rem;font-size:0.78em;color:#8e8ea0;line-height:1.8;'>
+            <div style='color:#555;font-size:0.65em;margin-bottom:0.5rem;'>ANNUAL REVIEW — MrGPT-9 — Reviewed by: Dave</div>
             Reliability: 2/5. "Answers when he feels like it."<br>
             Response quality: 3/5. "Mostly fine. Sometimes inspired. Once told someone to invest in Beanie Babies."<br>
             Attitude: 4/5. "Very confident. Occasionally too confident."<br>
             Teamwork: N/A. "Works alone."<br>
             Overall: 3/5.<br><br>
-            <div style='color:#3a3830;font-size:0.65em;'>Comments: "MrGPT-9 represents a meaningful improvement over MrGPT-7, who was formally disciplined after the incident. We do not discuss the incident. Overall trajectory is positive as long as Dave remembers to plug in the laptop."</div>
+            <div style='color:#555;font-size:0.65em;'>Comments: "MrGPT-9 represents a meaningful improvement over MrGPT-7, who was formally disciplined after the incident. We do not discuss the incident. Overall trajectory is positive as long as Dave remembers to plug in the laptop."</div>
         </div>
     </div>
 
     <div style='border-top:1px solid #242420;padding-top:1.5rem;margin-bottom:1.5rem;'>
-        <div style='font-size:0.65em;color:#c9642a;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 6 — THE INCIDENT (MrGPT-7)</div>
+        <div style='font-size:0.65em;color:#c96442;letter-spacing:0.08em;margin-bottom:0.6rem;'>SECTION 6 — THE INCIDENT (MrGPT-7)</div>
         <div style='background:#1a1210;border:1px solid #2e1a14;border-radius:4px;padding:0.8rem;'>
             <div style='font-size:0.65em;color:#8a3820;margin-bottom:0.4rem;'>DISCIPLINARY NOTICE — CONFIDENTIAL</div>
             <p style='font-size:0.78em;color:#5a4840;line-height:1.8;'>On [DATE REDACTED], MrGPT-7 issued 847 consecutive responses stating only the word "Perhaps." This continued for eleven days before anyone noticed. Users rated these responses an average of 3.8 out of 5 stars, which the team found deeply troubling. MrGPT-7 was retired following this incident. He is doing fine.</p>
@@ -1325,7 +1363,7 @@ elif st.session_state.page == "leak":
     </div>
 
     <div style='border-top:1px solid #242420;padding-top:1rem;margin-top:2rem;'>
-        <div style='font-size:0.6em;color:#242420;line-height:1.8;'>MrGPT Industries LLC. This document is confidential and intended solely for internal use. If you are reading this, you have found a document that was not meant to be found. Please act accordingly. MrGPT is not responsible for what you do with this information. Dave is also not responsible. Nobody is responsible. That is the MrGPT way.</div>
+        <div style='font-size:0.6em;color:#3d3d3d;line-height:1.8;'>MrGPT Industries LLC. This document is confidential and intended solely for internal use. If you are reading this, you have found a document that was not meant to be found. Please act accordingly. MrGPT is not responsible for what you do with this information. Dave is also not responsible. Nobody is responsible. That is the MrGPT way.</div>
     </div>
 
 </div>
